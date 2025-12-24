@@ -1,0 +1,1763 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบบันทึกการตรวจงานแม่บ้าน</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- PWA Meta Tags -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#2563eb">
+    <link rel="apple-touch-icon" href="icon-192x192.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        * {
+            font-family: 'Noto Sans Thai', sans-serif;
+        }
+        
+        .gradient-bg {
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+        }
+        
+        .card-shadow {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        
+        /* Camera styles */
+        .camera-container {
+            position: relative;
+            width: 100%;
+            height: 400px;
+            background: #000;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .camera-view {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .camera-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 20px;
+        }
+        
+        .camera-controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            margin-top: auto;
+        }
+        
+        .camera-shutter {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background: white;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        
+        .camera-shutter:active {
+            transform: scale(0.95);
+        }
+        
+        .camera-shutter-inner {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: white;
+            border: 3px solid #3b82f6;
+        }
+        
+        /* Status badges */
+        .status-good {
+            background: #10b981;
+            color: white;
+        }
+        
+        .status-pending {
+            background: #f59e0b;
+            color: white;
+        }
+        
+        .status-poor {
+            background: #ef4444;
+            color: white;
+        }
+        
+        /* Loading animation */
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .animate-pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 3px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #a1a1a1;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Offline Indicator -->
+    <div id="offlineIndicator" class="fixed bottom-4 right-4 bg-yellow-500 text-white px-4 py-2 rounded-full shadow-lg flex items-center gap-2 z-50 hidden">
+        <i class="fas fa-wifi-slash"></i>
+        <span class="text-sm font-medium">ออฟไลน์</span>
+    </div>
+    
+    <!-- Loading Screen -->
+    <div id="loadingScreen" class="fixed inset-0 bg-white z-50 flex flex-col items-center justify-center">
+        <div class="w-20 h-20 rounded-full gradient-bg flex items-center justify-center mb-6">
+            <i class="fas fa-clipboard-check text-3xl text-white"></i>
+        </div>
+        <div class="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mb-4"></div>
+        <p class="text-gray-600 animate-pulse">กำลังโหลดระบบ...</p>
+    </div>
+    
+    <!-- Login Screen -->
+    <div id="loginScreen" class="min-h-screen flex flex-col items-center justify-center p-4 hidden">
+        <div class="w-full max-w-md">
+            <div class="text-center mb-10">
+                <div class="inline-flex items-center justify-center w-24 h-24 rounded-full gradient-bg text-white text-5xl mb-6">
+                    <i class="fas fa-clipboard-check"></i>
+                </div>
+                <h1 class="text-3xl font-bold text-gray-800 mb-2">ระบบบันทึกการตรวจงาน</h1>
+                <p class="text-gray-600">สำหรับหัวหน้างานตรวจงานแม่บ้าน</p>
+            </div>
+            
+            <div class="bg-white rounded-2xl shadow-xl p-8">
+                <h2 class="text-xl font-semibold text-gray-800 mb-6 text-center">เลือกรายชื่อหัวหน้า</h2>
+                
+                <div class="space-y-3 mb-6" id="supervisorList">
+                    <!-- Supervisor list will be loaded here -->
+                </div>
+                
+                <div class="border-t border-gray-200 pt-6">
+                    <div class="text-center text-sm text-gray-500">
+                        <p class="mb-1">ระบบทำงานแบบออฟไลน์ได้</p>
+                        <p>ข้อมูลจะถูกบันทึกโดยอัตโนมัติ</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-8 text-center text-xs text-gray-400">
+                <p>เวอร์ชัน 1.0.0</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Main App -->
+    <div id="appScreen" class="min-h-screen hidden">
+        <!-- Header -->
+        <header class="gradient-bg text-white sticky top-0 z-40">
+            <div class="container mx-auto px-4 py-4">
+                <div class="flex justify-between items-center mb-4">
+                    <div>
+                        <h1 class="text-xl font-bold">บันทึกการตรวจงาน</h1>
+                        <p class="text-sm opacity-90" id="currentSupervisorName">หัวหน้า</p>
+                    </div>
+                    
+                    <div class="flex items-center gap-3">
+                        <button id="syncButton" class="bg-white bg-opacity-20 hover:bg-opacity-30 p-2 rounded-full transition-all">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                        <button id="logoutButton" class="bg-white bg-opacity-20 hover:bg-opacity-30 p-2 rounded-full transition-all">
+                            <i class="fas fa-sign-out-alt"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Stats -->
+                <div class="flex justify-between items-center">
+                    <div>
+                        <p class="text-sm opacity-90">วันที่</p>
+                        <p class="text-xl font-bold" id="currentDate">กำลังโหลด...</p>
+                    </div>
+                    
+                    <div class="text-right">
+                        <p class="text-sm opacity-90">ตรวจงานวันนี้</p>
+                        <p class="text-xl font-bold" id="todayInspections">0</p>
+                    </div>
+                </div>
+            </div>
+        </header>
+        
+        <!-- Main Content -->
+        <main class="container mx-auto px-4 py-6 pb-24">
+            <!-- Navigation Tabs -->
+            <div class="flex justify-around bg-white rounded-xl p-2 mb-6 shadow-sm">
+                <button class="nav-tab flex-1 py-3 flex flex-col items-center transition-all" data-screen="inspect">
+                    <i class="fas fa-search text-xl mb-1"></i>
+                    <span class="text-xs font-medium">ตรวจงาน</span>
+                </button>
+                <button class="nav-tab flex-1 py-3 flex flex-col items-center transition-all" data-screen="history">
+                    <i class="fas fa-history text-xl mb-1"></i>
+                    <span class="text-xs font-medium">ประวัติ</span>
+                </button>
+                <button class="nav-tab flex-1 py-3 flex flex-col items-center transition-all" data-screen="reports">
+                    <i class="fas fa-chart-bar text-xl mb-1"></i>
+                    <span class="text-xs font-medium">รายงาน</span>
+                </button>
+                <button class="nav-tab flex-1 py-3 flex flex-col items-center transition-all" data-screen="profile">
+                    <i class="fas fa-user text-xl mb-1"></i>
+                    <span class="text-xs font-medium">โปรไฟล์</span>
+                </button>
+            </div>
+            
+            <!-- Screens Container -->
+            <div id="screensContainer">
+                <!-- Inspect Screen -->
+                <div id="inspectScreen" class="screen">
+                    <h2 class="text-xl font-bold text-gray-800 mb-4">ตรวจงานแม่บ้าน</h2>
+                    
+                    <form id="inspectionForm" class="space-y-6">
+                        <!-- Select Maid -->
+                        <div>
+                            <label class="block text-gray-700 mb-2 font-medium">
+                                เลือกแม่บ้าน <span class="text-red-500">*</span>
+                            </label>
+                            <select id="maidSelect" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white" required>
+                                <option value="">เลือกแม่บ้าน</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Select Area -->
+                        <div>
+                            <label class="block text-gray-700 mb-2 font-medium">
+                                พื้นที่ที่ตรวจ <span class="text-red-500">*</span>
+                            </label>
+                            <select id="areaSelect" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white" required>
+                                <option value="">เลือกพื้นที่</option>
+                                <option value="HQ  ชั้น1-3">HQ  ชั้น1-3</option>
+                                <option value="พื้นที่ ตึกจัด​">พื้นที่ ตึกจัด​</option>
+                                <option value="พื้นที่ตึก HQ  ชั้น 4 +โรงเหล็ก​">พื้นที่ตึก HQ  ชั้น 4 +โรงเหล็ก​</option>
+                                <option value="พื้นที่ตึกจัดซื้อ​">พื้นที่ตึกจัดซื้อ​</option>
+                                <option value="พื้นที่คลังสำเร็จรูป​">พื้นที่คลังสำเร็จรูป​</option>
+                                <option value="พื้นที่โรงโฟม​">พื้นที่โรงโฟม​</option>
+                                <option value="โรงคอย">โรงคอย</option>
+                                <option value="อื่นๆ">อื่นๆ</option>
+                            </select>
+                            <input type="text" id="otherArea" class="w-full p-3 border border-gray-300 rounded-lg mt-2 hidden" placeholder="ระบุพื้นที่อื่นๆ">
+                        </div>
+                        
+                        <!-- Specific Location -->
+                        <div>
+                            <label class="block text-gray-700 mb-2 font-medium">
+                                จุดที่ตรวจสอบเจอข้อผิดพลาด <span class="text-red-500">*</span>
+                            </label>
+                            <input type="text" id="locationInput" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="เช่น ห้อนน้ำ HR" required>
+                        </div>
+                        
+                        <!-- Inspection Rating -->
+                        <div>
+                            <label class="block text-gray-700 mb-2 font-medium">
+                                ผลการตรวจ <span class="text-red-500">*</span>
+                            </label>
+                            <div class="grid grid-cols-3 gap-2">
+                                <button type="button" class="rating-btn p-4 rounded-lg border-2 border-green-200 bg-green-50 text-green-700 hover:bg-green-100" data-rating="good">
+                                    <i class="fas fa-check-circle text-2xl mb-2"></i>
+                                    <p class="font-medium">เรียบร้อย</p>
+                                </button>
+                                <button type="button" class="rating-btn p-4 rounded-lg border-2 border-yellow-200 bg-yellow-50 text-yellow-700 hover:bg-yellow-100" data-rating="pending">
+                                    <i class="fas fa-exclamation-circle text-2xl mb-2"></i>
+                                    <p class="font-medium">ปรับปรุง</p>
+                                </button>
+                                <button type="button" class="rating-btn p-4 rounded-lg border-2 border-red-200 bg-red-50 text-red-700 hover:bg-red-100" data-rating="poor">
+                                    <i class="fas fa-times-circle text-2xl mb-2"></i>
+                                    <p class="font-medium">ไม่เรียบร้อย</p>
+                                </button>
+                            </div>
+                            <input type="hidden" id="ratingInput" required>
+                        </div>
+                        
+                        <!-- Problem Details -->
+                        <div id="problemDetails" class="hidden">
+                            <label class="block text-gray-700 mb-2 font-medium">
+                                รายละเอียดปัญหา <span class="text-red-500">*</span>
+                            </label>
+                            <div class="space-y-2 mb-3">
+                                <label class="inline-flex items-center">
+                                    <input type="checkbox" name="problems" value="ฝุ่นละออง" class="rounded border-gray-300 text-blue-600">
+                                    <span class="ml-2 text-gray-700">ฝุ่นละออง</span>
+                                </label>
+                                <label class="inline-flex items-center">
+                                    <input type="checkbox" name="problems" value="คราบสกปรก" class="rounded border-gray-300 text-blue-600">
+                                    <span class="ml-2 text-gray-700">คราบสกปรก</span>
+                                </label>
+                                <label class="inline-flex items-center">
+                                    <input type="checkbox" name="problems" value="ของวางระเกะระกะ" class="rounded border-gray-300 text-blue-600">
+                                    <span class="ml-2 text-gray-700">ของวางระเกะระกะ</span>
+                                </label>
+                                <label class="inline-flex items-center">
+                                    <input type="checkbox" name="problems" value="กลิ่นเหม็น" class="rounded border-gray-300 text-blue-600">
+                                    <span class="ml-2 text-gray-700">กลิ่นเหม็น</span>
+                                </label>
+                                <label class="inline-flex items-center">
+                                    <input type="checkbox" name="problems" value="อุปกรณ์เสียหาย" class="rounded border-gray-300 text-blue-600">
+                                    <span class="ml-2 text-gray-700">อุปกรณ์เสียหาย</span>
+                                </label>
+                            </div>
+                            <textarea id="problemDescription" rows="2" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="อธิบายปัญหาเพิ่มเติม..."></textarea>
+                        </div>
+                        
+                        <!-- Photo Section -->
+                        <div>
+                            <label class="block text-gray-700 mb-2 font-medium">
+                                ถ่ายรูปประกอบ <span class="text-red-500">*</span>
+                            </label>
+                            <div class="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center bg-gray-50">
+                                <div class="flex justify-center mb-4">
+                                    <div class="w-20 h-20 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center">
+                                        <i class="fas fa-camera text-3xl"></i>
+                                    </div>
+                                </div>
+                                <p class="text-gray-700 font-medium mb-2">ต้องถ่ายภาพจากกล้องเท่านั้น</p>
+                                <p class="text-sm text-gray-500 mb-4">ถ่ายรูปจุดที่ไม่เรียบร้อยเพื่อเป็นหลักฐาน</p>
+                                
+                                <button type="button" id="takePhotoBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-lg w-full transition-colors">
+                                    <i class="fas fa-camera mr-2"></i>เปิดกล้องถ่ายรูป
+                                </button>
+                                
+                                <!-- Photo Preview -->
+                                <div id="photoPreview" class="mt-6 hidden">
+                                    <p class="text-sm text-gray-700 mb-2 font-medium">รูปภาพที่ถ่าย:</p>
+                                    <div class="relative">
+                                        <img id="previewImage" src="" alt="รูปภาพผลงาน" class="w-full h-48 object-cover rounded-lg border border-gray-300 cursor-pointer">
+                                        <button type="button" id="removePhotoBtn" class="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-8 h-8 flex items-center justify-center transition-colors">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                    <p class="text-xs text-gray-500 mt-2 text-center">คลิกที่รูปเพื่อถ่ายใหม่</p>
+                                </div>
+                                
+                                <!-- Photo Warning -->
+                                <div id="photoWarning" class="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg hidden">
+                                    <div class="flex items-center">
+                                        <i class="fas fa-exclamation-triangle text-yellow-600 mr-2"></i>
+                                        <p class="text-sm text-yellow-700">กรุณาถ่ายรูปประกอบก่อนบันทึก</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Notes -->
+                        <div>
+                            <label class="block text-gray-700 mb-2 font-medium">หมายเหตุเพิ่มเติม</label>
+                            <textarea id="notes" rows="3" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="เพิ่มหมายเหตุหรือข้อแนะนำ..."></textarea>
+                        </div>
+                        
+                        <!-- Submit Button -->
+                        <button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-6 rounded-lg w-full transition-colors">
+                            <i class="fas fa-save mr-2"></i>บันทึกการตรวจงาน
+                        </button>
+                    </form>
+                </div>
+                
+                <!-- History Screen -->
+                <div id="historyScreen" class="screen hidden">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-bold text-gray-800">ประวัติการตรวจงาน</h2>
+                        <button id="refreshHistory" class="text-gray-600 hover:text-blue-600">
+                            <i class="fas fa-redo"></i>
+                        </button>
+                    </div>
+                    
+                    <!-- Filter Tabs -->
+                    <div class="flex space-x-2 mb-6">
+                        <button class="filter-btn active px-4 py-2 rounded-lg text-sm font-medium bg-blue-100 text-blue-700" data-filter="all">ทั้งหมด</button>
+                        <button class="filter-btn px-4 py-2 rounded-lg text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200" data-filter="today">วันนี้</button>
+                        <button class="filter-btn px-4 py-2 rounded-lg text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200" data-filter="week">สัปดาห์นี้</button>
+                        <button class="filter-btn px-4 py-2 rounded-lg text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200" data-filter="poor">ไม่เรียบร้อย</button>
+                    </div>
+                    
+                    <!-- Maid Filter -->
+                    <div class="mb-4">
+                        <select id="historyMaidFilter" class="w-full p-2 border border-gray-300 rounded-lg text-sm">
+                            <option value="">แม่บ้านทั้งหมด</option>
+                        </select>
+                    </div>
+                    
+                    <div id="historyList" class="space-y-4">
+                        <!-- History will be loaded here -->
+                    </div>
+                </div>
+                
+                <!-- Reports Screen -->
+                <div id="reportsScreen" class="screen hidden">
+                    <h2 class="text-xl font-bold text-gray-800 mb-4">รายงานสรุป</h2>
+                    
+                    <!-- Date Range Selector -->
+                    <div class="bg-white rounded-xl shadow-sm p-4 mb-6">
+                        <label class="block text-gray-700 mb-2 font-medium">เลือกช่วงเวลา</label>
+                        <div class="grid grid-cols-2 gap-2 mb-4">
+                            <div>
+                                <label class="text-sm text-gray-600 mb-1 block">จากวันที่</label>
+                                <input type="date" id="reportStartDate" class="w-full p-2 border border-gray-300 rounded-lg text-sm">
+                            </div>
+                            <div>
+                                <label class="text-sm text-gray-600 mb-1 block">ถึงวันที่</label>
+                                <input type="date" id="reportEndDate" class="w-full p-2 border border-gray-300 rounded-lg text-sm">
+                            </div>
+                        </div>
+                        <button id="generateReport" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg text-sm">
+                            สร้างรายงาน
+                        </button>
+                    </div>
+                    
+                    <!-- Summary Cards -->
+                    <div class="grid grid-cols-2 gap-4 mb-6" id="reportSummary">
+                        <div class="bg-white rounded-xl shadow-sm p-4 text-center">
+                            <div class="text-3xl font-bold text-blue-600 mb-1">0</div>
+                            <div class="text-sm text-gray-600">การตรวจทั้งหมด</div>
+                        </div>
+                        <div class="bg-white rounded-xl shadow-sm p-4 text-center">
+                            <div class="text-3xl font-bold text-green-600 mb-1">0</div>
+                            <div class="text-sm text-gray-600">เรียบร้อย</div>
+                        </div>
+                        <div class="bg-white rounded-xl shadow-sm p-4 text-center">
+                            <div class="text-3xl font-bold text-yellow-600 mb-1">0</div>
+                            <div class="text-sm text-gray-600">ปรับปรุง</div>
+                        </div>
+                        <div class="bg-white rounded-xl shadow-sm p-4 text-center">
+                            <div class="text-3xl font-bold text-red-600 mb-1">0</div>
+                            <div class="text-sm text-gray-600">ไม่เรียบร้อย</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Maid Performance -->
+                    <div class="bg-white rounded-xl shadow-sm p-4 mb-6">
+                        <h3 class="font-bold text-gray-800 mb-4">ประสิทธิภาพแม่บ้าน</h3>
+                        <div id="maidPerformance" class="space-y-3">
+                            <!-- Performance data will be loaded here -->
+                        </div>
+                    </div>
+                    
+                    <!-- Problem Areas -->
+                    <div class="bg-white rounded-xl shadow-sm p-4">
+                        <h3 class="font-bold text-gray-800 mb-4">จุดที่มีปัญหา</h3>
+                        <div id="problemAreas" class="space-y-2">
+                            <!-- Problem areas will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Profile Screen -->
+                <div id="profileScreen" class="screen hidden">
+                    <h2 class="text-xl font-bold text-gray-800 mb-4">โปรไฟล์หัวหน้า</h2>
+                    
+                    <!-- Profile Card -->
+                    <div class="bg-white rounded-xl shadow-sm p-6 mb-6">
+                        <div class="flex items-center mb-6">
+                            <div class="w-24 h-24 rounded-full gradient-bg text-white flex items-center justify-center text-4xl">
+                                <i class="fas fa-user-tie"></i>
+                            </div>
+                            <div class="ml-6">
+                                <h3 id="profileName" class="text-2xl font-bold text-gray-800 mb-1">หัวหน้า</h3>
+                                <p id="profilePosition" class="text-gray-600 mb-2">ตำแหน่ง: หัวหน้างานตรวจสอบ</p>
+                                <p id="profileId" class="text-sm text-gray-500">รหัส: -</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Stats -->
+                        <div class="grid grid-cols-2 gap-4 mb-6">
+                            <div class="bg-blue-50 rounded-lg p-4 text-center">
+                                <p class="text-2xl font-bold text-blue-700 mb-1" id="profileTotalInspections">0</p>
+                                <p class="text-sm text-gray-600">ตรวจทั้งหมด</p>
+                            </div>
+                            <div class="bg-green-50 rounded-lg p-4 text-center">
+                                <p class="text-2xl font-bold text-green-700 mb-1" id="profileGoodInspections">0</p>
+                                <p class="text-sm text-gray-600">เรียบร้อย</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Settings -->
+                    <div class="space-y-4">
+                        <div class="bg-white rounded-xl shadow-sm p-6">
+                            <h3 class="font-bold text-gray-800 mb-4">ตั้งค่าแอปพลิเคชัน</h3>
+                            
+                            <div class="space-y-4">
+                                <!-- Install App -->
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center">
+                                        <div class="w-12 h-12 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center mr-4">
+                                            <i class="fas fa-mobile-alt"></i>
+                                        </div>
+                                        <div>
+                                            <p class="font-medium">ติดตั้งแอป</p>
+                                            <p class="text-sm text-gray-500">ติดตั้งแอปพลิเคชันบนหน้าจอหลัก</p>
+                                        </div>
+                                    </div>
+                                    <button id="installAppBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg text-sm transition-colors">
+                                        ติดตั้ง
+                                    </button>
+                                </div>
+                                
+                                <!-- Export Data -->
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center">
+                                        <div class="w-12 h-12 rounded-lg bg-green-100 text-green-600 flex items-center justify-center mr-4">
+                                            <i class="fas fa-file-export"></i>
+                                        </div>
+                                        <div>
+                                            <p class="font-medium">ส่งออกข้อมูล</p>
+                                            <p class="text-sm text-gray-500">ส่งออกข้อมูลเป็นไฟล์ Excel</p>
+                                        </div>
+                                    </div>
+                                    <button id="exportDataBtn" class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg text-sm transition-colors">
+                                        ส่งออก
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Additional Info -->
+                        <div class="bg-white rounded-xl shadow-sm p-6">
+                            <h3 class="font-bold text-gray-800 mb-4">ข้อมูลเพิ่มเติม</h3>
+                            <div class="space-y-3">
+                                <a href="#" class="flex items-center justify-between py-2 hover:text-blue-600 transition-colors">
+                                    <span class="text-gray-700">คู่มือการใช้งาน</span>
+                                    <i class="fas fa-chevron-right text-gray-400"></i>
+                                </a>
+                                <a href="#" class="flex items-center justify-between py-2 hover:text-blue-600 transition-colors">
+                                    <span class="text-gray-700">แจ้งปัญหา</span>
+                                    <i class="fas fa-chevron-right text-gray-400"></i>
+                                </a>
+                                <button id="clearDataBtn" class="flex items-center justify-between py-2 w-full text-red-600 hover:text-red-700 transition-colors">
+                                    <span>ล้างข้อมูลแอป</span>
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+        
+        <!-- Notification -->
+        <div id="notification" class="fixed top-4 right-4 bg-white rounded-xl shadow-xl p-4 max-w-sm transform transition-transform duration-300 translate-x-full z-50">
+            <div class="flex items-start">
+                <div id="notificationIcon" class="flex-shrink-0 mr-3 mt-0.5">
+                    <i class="fas fa-check-circle text-xl text-green-500"></i>
+                </div>
+                <div class="flex-1">
+                    <h4 id="notificationTitle" class="font-bold text-gray-800"></h4>
+                    <p id="notificationMessage" class="text-gray-600 text-sm mt-1"></p>
+                </div>
+                <button id="closeNotificationBtn" class="ml-4 text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Camera Modal -->
+    <div id="cameraModal" class="fixed inset-0 bg-black z-50 hidden flex flex-col">
+        <!-- Camera Header -->
+        <div class="p-4 bg-black bg-opacity-75 flex justify-between items-center">
+            <h3 class="text-lg font-bold text-white">ถ่ายรูปปัญหา</h3>
+            <button id="closeCameraBtn" class="text-white hover:text-gray-300 text-xl">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        
+        <!-- Camera View -->
+        <div class="flex-1 relative">
+            <video id="cameraVideo" autoplay playsinline class="camera-view"></video>
+            
+            <!-- Camera Overlay -->
+            <div class="camera-overlay">
+                <!-- Camera Switch -->
+                <div class="flex justify-end">
+                    <button id="switchCameraBtn" class="bg-black bg-opacity-50 text-white rounded-full w-12 h-12 flex items-center justify-center hover:bg-opacity-70 transition-all">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                </div>
+                
+                <!-- Camera Controls -->
+                <div class="camera-controls">
+                    <button id="captureBtn" class="camera-shutter">
+                        <div class="camera-shutter-inner"></div>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Camera Footer -->
+        <div class="p-4 bg-black bg-opacity-75 text-center">
+            <p class="text-white text-sm">ถ่ายภาพจุดที่ไม่เรียบร้อยให้ชัดเจน</p>
+            <p class="text-gray-400 text-xs mt-1">กดปุ่มวงกลมสีขาวเพื่อถ่ายภาพ</p>
+        </div>
+    </div>
+    
+    <!-- Success Modal -->
+    <div id="successModal" class="fixed inset-0 bg-black bg-opacity-75 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl w-full max-w-md p-8 text-center">
+            <div class="w-24 h-24 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-5xl mx-auto mb-6">
+                <i class="fas fa-check"></i>
+            </div>
+            
+            <h3 class="text-2xl font-bold text-gray-800 mb-2">บันทึกสำเร็จ!</h3>
+            <p class="text-gray-600 mb-6">ข้อมูลการตรวจงานถูกบันทึกเรียบร้อยแล้ว</p>
+            
+            <div class="flex space-x-4">
+                <button id="viewDetailsBtn" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-colors">
+                    ดูประวัติ
+                </button>
+                <button id="closeSuccessBtn" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-3 px-4 rounded-lg transition-colors">
+                    ตรวจงานต่อ
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Image Viewer Modal -->
+    <div id="imageViewerModal" class="fixed inset-0 bg-black bg-opacity-90 z-50 hidden flex items-center justify-center p-4">
+        <div class="relative w-full max-w-4xl">
+            <button id="closeImageViewer" class="absolute top-4 right-4 text-white text-2xl z-10">
+                <i class="fas fa-times"></i>
+            </button>
+            <img id="viewerImage" src="" alt="" class="w-full h-auto max-h-[80vh] object-contain">
+        </div>
+    </div>
+    
+    <!-- Main JavaScript -->
+    <script>
+        // App Configuration
+        const CONFIG = {
+            APP_NAME: 'ระบบบันทึกการตรวจงานแม่บ้าน',
+            VERSION: '1.0.0',
+            CACHE_NAME: 'maid-inspection-v1',
+            GOOGLE_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycby1pIUVey9E5zE3Me1bpZWFL3xbtiR9_35icTlNZvqAoxZ4qQkH1fxGgF0Yf1BznCz5/exec',
+            MAX_PHOTO_SIZE: 1024 * 1024, // 1MB
+        };
+        
+        // Sample Data
+        const SAMPLE_SUPERVISORS = [
+            { id: 1, name: 'คุณ สุภาวดี เสนาะเสียง', position: 'หัวหน้างานตรวจสอบ', phone: '110', email: 'supawadee.s@bitwise.co.th' },
+            { id: 2, name: 'TEST', position: 'TEST', phone: '108', email: 'Test@bitwise.co.th' },
+        ];
+        
+        const SAMPLE_MAIDS = [
+            { id: 1, name: 'นางสาวง้อ  พาพินิจ​', area: 'พื้นที่ตึก HQ  ชั้น1-3​' },
+            { id: 2, name: 'นางสาวปัณฑารีย์  สุวรรกล่อม​', area: 'พื้นที่ ตึกจัดซื้อ' },
+            { id: 3, name: 'นางสาวจิตรียา  ภูผาหลวง​', area: 'พื้นที่ตึก HQ  ชั้น 4 +โรงเหล็ก​' },
+            { id: 4, name: 'นางสาว เทพนารินทร์  สอนไชยา​', area: 'พื้นที่ตึกจัดซื้อ​' },
+            { id: 5, name: 'นางสง่า พงษ์กระฉัตร​', area: 'พื้นที่คลังสำเร็จรูป​' },
+            { id: 6, name: 'นางสาวมณทิรา  ด่านจอมฟอน​', area: 'พื้นที่โรงโฟม​' },
+        ];
+        
+        // Storage Manager
+        const Storage = {
+            prefix: 'inspect_',
+            
+            set(key, value) {
+                try {
+                    localStorage.setItem(this.prefix + key, JSON.stringify(value));
+                    return true;
+                } catch (error) {
+                    console.error('Storage error:', error);
+                    this.showStorageWarning();
+                    return false;
+                }
+            },
+            
+            get(key, defaultValue = null) {
+                try {
+                    const value = localStorage.getItem(this.prefix + key);
+                    return value ? JSON.parse(value) : defaultValue;
+                } catch (error) {
+                    return defaultValue;
+                }
+            },
+            
+            remove(key) {
+                localStorage.removeItem(this.prefix + key);
+            },
+            
+            clear() {
+                Object.keys(localStorage).forEach(key => {
+                    if (key.startsWith(this.prefix)) {
+                        localStorage.removeItem(key);
+                    }
+                });
+            },
+            
+            showStorageWarning() {
+                NotificationManager.show('พื้นที่เก็บข้อมูลเต็ม', 'กรุณาล้างข้อมูลเก่าบางส่วน', 'warning');
+            }
+        };
+        
+        // Notification Manager
+        const NotificationManager = {
+            show(title, message, type = 'info', duration = 5000) {
+                const notification = document.getElementById('notification');
+                const icon = document.getElementById('notificationIcon');
+                const titleEl = document.getElementById('notificationTitle');
+                const messageEl = document.getElementById('notificationMessage');
+                
+                let iconClass = 'fas fa-info-circle';
+                let iconColor = 'text-blue-500';
+                
+                switch (type) {
+                    case 'success':
+                        iconClass = 'fas fa-check-circle';
+                        iconColor = 'text-green-500';
+                        break;
+                    case 'error':
+                        iconClass = 'fas fa-exclamation-circle';
+                        iconColor = 'text-red-500';
+                        break;
+                    case 'warning':
+                        iconClass = 'fas fa-exclamation-triangle';
+                        iconColor = 'text-yellow-500';
+                        break;
+                }
+                
+                icon.innerHTML = `<i class="${iconClass} ${iconColor}"></i>`;
+                titleEl.textContent = title;
+                messageEl.textContent = message;
+                
+                notification.classList.remove('translate-x-full');
+                notification.classList.remove('hidden');
+                
+                if (duration > 0) {
+                    setTimeout(() => this.hide(), duration);
+                }
+            },
+            
+            hide() {
+                const notification = document.getElementById('notification');
+                notification.classList.add('translate-x-full');
+                setTimeout(() => notification.classList.add('hidden'), 300);
+            }
+        };
+        
+        // Camera Manager
+        const CameraManager = {
+            stream: null,
+            facingMode: 'environment',
+            
+            async initialize() {
+                try {
+                    const constraints = {
+                        video: {
+                            facingMode: this.facingMode,
+                            width: { ideal: 1280 },
+                            height: { ideal: 720 }
+                        },
+                        audio: false
+                    };
+                    
+                    this.stream = await navigator.mediaDevices.getUserMedia(constraints);
+                    const videoElement = document.getElementById('cameraVideo');
+                    videoElement.srcObject = this.stream;
+                    
+                    return true;
+                } catch (error) {
+                    console.error('Camera error:', error);
+                    NotificationManager.show('ไม่สามารถเปิดกล้องได้', 'กรุณาอนุญาตการเข้าถึงกล้อง', 'error');
+                    return false;
+                }
+            },
+            
+            async switchCamera() {
+                if (!this.stream) return;
+                
+                this.stream.getTracks().forEach(track => track.stop());
+                
+                this.facingMode = this.facingMode === 'environment' ? 'user' : 'environment';
+                
+                return await this.initialize();
+            },
+            
+            capture() {
+                const video = document.getElementById('cameraVideo');
+                const canvas = document.createElement('canvas');
+                
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                
+                // Compress to JPEG with 70% quality
+                return canvas.toDataURL('image/jpeg', 0.7);
+            },
+            
+            stop() {
+                if (this.stream) {
+                    this.stream.getTracks().forEach(track => track.stop());
+                    this.stream = null;
+                }
+            }
+        };
+        
+        // Network Manager (Simplified for GitHub Pages)
+        const NetworkManager = {
+            isOnline: navigator.onLine,
+            
+            initialize() {
+                window.addEventListener('online', () => this.handleOnline());
+                window.addEventListener('offline', () => this.handleOffline());
+                this.updateOnlineStatus();
+            },
+            
+            updateOnlineStatus() {
+                this.isOnline = navigator.onLine;
+                const indicator = document.getElementById('offlineIndicator');
+                
+                if (this.isOnline) {
+                    indicator.classList.add('hidden');
+                } else {
+                    indicator.classList.remove('hidden');
+                    NotificationManager.show('กำลังทำงานแบบออฟไลน์', 'ข้อมูลจะถูกบันทึกในอุปกรณ์', 'warning');
+                }
+            },
+            
+            handleOnline() {
+                this.isOnline = true;
+                document.getElementById('offlineIndicator').classList.add('hidden');
+                NotificationManager.show('กลับมาออนไลน์แล้ว', 'สามารถส่งออกข้อมูลได้', 'info');
+            },
+            
+            handleOffline() {
+                this.isOnline = false;
+                document.getElementById('offlineIndicator').classList.remove('hidden');
+            },
+            
+            async exportToGoogleSheets(data) {
+                if (!this.isOnline) {
+                    NotificationManager.show('ไม่สามารถส่งข้อมูลได้', 'กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต', 'error');
+                    return false;
+                }
+                
+                try {
+                    const response = await fetch(CONFIG.GOOGLE_SCRIPT_URL, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(data)
+                    });
+                    
+                    return response.ok;
+                } catch (error) {
+                    console.error('Export error:', error);
+                    return false;
+                }
+            }
+        };
+        
+        // Main Application Class
+        class MaidInspectionApp {
+            constructor() {
+                this.currentSupervisor = null;
+                this.currentScreen = 'inspect';
+                this.inspections = Storage.get('inspections', []);
+                this.maids = Storage.get('maids', SAMPLE_MAIDS);
+                this.initializeApp();
+            }
+            
+            initializeApp() {
+                this.setupEventListeners();
+                this.initializeDate();
+                this.checkLoginStatus();
+                NetworkManager.initialize();
+                
+                setTimeout(() => {
+                    document.getElementById('loadingScreen').classList.add('hidden');
+                }, 1000);
+            }
+            
+            setupEventListeners() {
+                // Navigation
+                document.querySelectorAll('.nav-tab').forEach(tab => {
+                    tab.addEventListener('click', (e) => {
+                        const screen = e.currentTarget.dataset.screen;
+                        this.switchScreen(screen);
+                    });
+                });
+                
+                // Filter buttons
+                document.querySelectorAll('.filter-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        document.querySelectorAll('.filter-btn').forEach(b => {
+                            b.classList.remove('bg-blue-100', 'text-blue-700');
+                            b.classList.add('bg-gray-100', 'text-gray-700');
+                        });
+                        
+                        e.currentTarget.classList.remove('bg-gray-100', 'text-gray-700');
+                        e.currentTarget.classList.add('bg-blue-100', 'text-blue-700');
+                        
+                        this.loadHistory(e.currentTarget.dataset.filter);
+                    });
+                });
+                
+                // Rating buttons
+                document.querySelectorAll('.rating-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const rating = e.currentTarget.dataset.rating;
+                        this.setRating(rating);
+                    });
+                });
+                
+                // Area selection
+                document.getElementById('areaSelect').addEventListener('change', (e) => {
+                    const otherArea = document.getElementById('otherArea');
+                    otherArea.classList.toggle('hidden', e.target.value !== 'อื่นๆ');
+                    if (e.target.value === 'อื่นๆ') {
+                        otherArea.focus();
+                    }
+                });
+                
+                // Camera
+                document.getElementById('takePhotoBtn').addEventListener('click', () => this.openCamera());
+                document.getElementById('closeCameraBtn').addEventListener('click', () => this.closeCamera());
+                document.getElementById('switchCameraBtn').addEventListener('click', () => CameraManager.switchCamera());
+                document.getElementById('captureBtn').addEventListener('click', () => this.capturePhoto());
+                document.getElementById('removePhotoBtn').addEventListener('click', () => this.removePhoto());
+                document.getElementById('previewImage').addEventListener('click', () => this.openCamera());
+                
+                // Form submission
+                document.getElementById('inspectionForm').addEventListener('submit', (e) => this.submitInspection(e));
+                
+                // Modals
+                document.getElementById('closeSuccessBtn').addEventListener('click', () => {
+                    document.getElementById('successModal').classList.add('hidden');
+                });
+                document.getElementById('viewDetailsBtn').addEventListener('click', () => {
+                    document.getElementById('successModal').classList.add('hidden');
+                    this.switchScreen('history');
+                });
+                
+                document.getElementById('closeImageViewer').addEventListener('click', () => {
+                    document.getElementById('imageViewerModal').classList.add('hidden');
+                });
+                
+                // Notification close
+                document.getElementById('closeNotificationBtn').addEventListener('click', () => {
+                    NotificationManager.hide();
+                });
+                
+                // Sync button
+                document.getElementById('syncButton').addEventListener('click', () => {
+                    this.exportData();
+                });
+                
+                // Logout
+                document.getElementById('logoutButton').addEventListener('click', () => this.logout());
+                
+                // Install app
+                document.getElementById('installAppBtn').addEventListener('click', () => this.installApp());
+                
+                // Export data
+                document.getElementById('exportDataBtn').addEventListener('click', () => this.exportData());
+                
+                // Clear data
+                document.getElementById('clearDataBtn').addEventListener('click', () => this.clearData());
+                
+                // Refresh history
+                document.getElementById('refreshHistory').addEventListener('click', () => this.loadHistory());
+                
+                // Generate report
+                document.getElementById('generateReport').addEventListener('click', () => this.generateReport());
+                
+                // Maid filter in history
+                document.getElementById('historyMaidFilter').addEventListener('change', () => {
+                    const filter = document.querySelector('.filter-btn.active').dataset.filter;
+                    this.loadHistory(filter);
+                });
+                
+                // PWA install
+                window.addEventListener('beforeinstallprompt', (e) => {
+                    e.preventDefault();
+                    window.deferredPrompt = e;
+                    document.getElementById('installAppBtn').classList.remove('hidden');
+                });
+            }
+            
+            initializeDate() {
+                const now = new Date();
+                const options = { 
+                    weekday: 'long', 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric',
+                    timeZone: 'Asia/Bangkok'
+                };
+                
+                const thaiDate = now.toLocaleDateString('th-TH', options);
+                document.getElementById('currentDate').textContent = thaiDate;
+                
+                // Set default dates for reports
+                const today = now.toISOString().split('T')[0];
+                const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+                document.getElementById('reportStartDate').value = weekAgo;
+                document.getElementById('reportEndDate').value = today;
+            }
+            
+            checkLoginStatus() {
+                const savedSupervisor = Storage.get('current_supervisor');
+                
+                if (savedSupervisor) {
+                    this.login(savedSupervisor);
+                } else {
+                    this.showLoginScreen();
+                }
+            }
+            
+            showLoginScreen() {
+                this.loadSupervisors();
+                document.getElementById('loginScreen').classList.remove('hidden');
+                document.getElementById('appScreen').classList.add('hidden');
+            }
+            
+            loadSupervisors() {
+                const supervisorList = document.getElementById('supervisorList');
+                const supervisors = SAMPLE_SUPERVISORS;
+                
+                supervisorList.innerHTML = '';
+                
+                supervisors.forEach(supervisor => {
+                    const button = document.createElement('button');
+                    button.className = 'w-full bg-white border border-gray-200 hover:border-blue-300 hover:bg-blue-50 text-gray-800 font-medium py-4 px-4 rounded-xl text-left transition-all duration-200 mb-3 last:mb-0';
+                    button.innerHTML = `
+                        <div class="flex items-center">
+                            <div class="w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xl mr-4">
+                                <i class="fas fa-user-tie"></i>
+                            </div>
+                            <div class="flex-1">
+                                <p class="font-semibold text-gray-800">${supervisor.name}</p>
+                                <p class="text-sm text-gray-500">${supervisor.position}</p>
+                            </div>
+                            <i class="fas fa-chevron-right text-gray-400"></i>
+                        </div>
+                    `;
+                    
+                    button.addEventListener('click', () => this.login(supervisor));
+                    supervisorList.appendChild(button);
+                });
+            }
+            
+            login(supervisor) {
+                this.currentSupervisor = supervisor;
+                Storage.set('current_supervisor', supervisor);
+                
+                // Update UI
+                document.getElementById('currentSupervisorName').textContent = supervisor.name;
+                this.updateProfileInfo();
+                
+                // Load maids
+                this.loadMaids();
+                
+                // Show main app
+                document.getElementById('loginScreen').classList.add('hidden');
+                document.getElementById('appScreen').classList.remove('hidden');
+                
+                // Load today's inspections count
+                this.updateTodayInspections();
+                
+                NotificationManager.show('ยินดีต้อนรับ', `สวัสดี ${supervisor.name}`, 'success');
+            }
+            
+            logout() {
+                if (confirm('คุณต้องการออกจากระบบใช่หรือไม่?')) {
+                    Storage.remove('current_supervisor');
+                    this.currentSupervisor = null;
+                    this.showLoginScreen();
+                    NotificationManager.show('ออกจากระบบแล้ว', 'คุณได้ออกจากระบบเรียบร้อย', 'info');
+                }
+            }
+            
+            loadMaids() {
+                const maidSelect = document.getElementById('maidSelect');
+                const historyMaidFilter = document.getElementById('historyMaidFilter');
+                
+                maidSelect.innerHTML = '<option value="">เลือกแม่บ้าน</option>';
+                historyMaidFilter.innerHTML = '<option value="">แม่บ้านทั้งหมด</option>';
+                
+                this.maids.forEach(maid => {
+                    // For inspection form
+                    const option = document.createElement('option');
+                    option.value = maid.id;
+                    option.textContent = `${maid.name} (${maid.area})`;
+                    maidSelect.appendChild(option);
+                    
+                    // For history filter
+                    const filterOption = document.createElement('option');
+                    filterOption.value = maid.id;
+                    filterOption.textContent = maid.name;
+                    historyMaidFilter.appendChild(filterOption);
+                });
+            }
+            
+            updateProfileInfo() {
+                if (!this.currentSupervisor) return;
+                
+                const supervisorInspections = this.inspections.filter(i => i.supervisorId === this.currentSupervisor.id);
+                const goodInspections = supervisorInspections.filter(i => i.rating === 'good').length;
+                
+                document.getElementById('profileName').textContent = this.currentSupervisor.name;
+                document.getElementById('profilePosition').textContent = `ตำแหน่ง: ${this.currentSupervisor.position}`;
+                document.getElementById('profileId').textContent = `รหัส: S${this.currentSupervisor.id.toString().padStart(3, '0')}`;
+                document.getElementById('profileTotalInspections').textContent = supervisorInspections.length;
+                document.getElementById('profileGoodInspections').textContent = goodInspections;
+            }
+            
+            updateTodayInspections() {
+                if (!this.currentSupervisor) return;
+                
+                const today = new Date().toDateString();
+                const todayInspections = this.inspections.filter(inspection => {
+                    const inspectionDate = new Date(inspection.timestamp).toDateString();
+                    return inspectionDate === today && inspection.supervisorId === this.currentSupervisor.id;
+                });
+                
+                document.getElementById('todayInspections').textContent = todayInspections.length;
+            }
+            
+            switchScreen(screen) {
+                // Update active tab
+                document.querySelectorAll('.nav-tab').forEach(tab => {
+                    const isActive = tab.dataset.screen === screen;
+                    tab.classList.toggle('text-blue-600', isActive);
+                    tab.classList.toggle('text-gray-500', !isActive);
+                    
+                    // Add active indicator
+                    const existingIndicator = tab.querySelector('.active-indicator');
+                    if (isActive && !existingIndicator) {
+                        const indicator = document.createElement('div');
+                        indicator.className = 'active-indicator w-2 h-2 bg-blue-600 rounded-full mt-1';
+                        tab.appendChild(indicator);
+                    } else if (!isActive && existingIndicator) {
+                        existingIndicator.remove();
+                    }
+                });
+                
+                // Hide all screens
+                document.querySelectorAll('.screen').forEach(screenEl => {
+                    screenEl.classList.add('hidden');
+                });
+                
+                // Show selected screen
+                const targetScreen = document.getElementById(`${screen}Screen`);
+                if (targetScreen) {
+                    targetScreen.classList.remove('hidden');
+                    this.currentScreen = screen;
+                    
+                    // Load screen data
+                    switch (screen) {
+                        case 'history':
+                            this.loadHistory();
+                            break;
+                        case 'reports':
+                            this.generateReport();
+                            break;
+                        case 'profile':
+                            this.updateProfileInfo();
+                            break;
+                    }
+                }
+            }
+            
+            setRating(rating) {
+                // Update rating input
+                document.getElementById('ratingInput').value = rating;
+                
+                // Update button styles
+                document.querySelectorAll('.rating-btn').forEach(btn => {
+                    btn.classList.remove('border-blue-500', 'bg-blue-100');
+                    const btnRating = btn.dataset.rating;
+                    
+                    if (btnRating === rating) {
+                        btn.classList.add('border-blue-500', 'bg-blue-100');
+                    }
+                });
+                
+                // Show/hide problem details
+                const problemDetails = document.getElementById('problemDetails');
+                if (rating === 'good') {
+                    problemDetails.classList.add('hidden');
+                } else {
+                    problemDetails.classList.remove('hidden');
+                }
+            }
+            
+            async openCamera() {
+                document.getElementById('cameraModal').classList.remove('hidden');
+                const success = await CameraManager.initialize();
+                if (!success) {
+                    this.closeCamera();
+                }
+            }
+            
+            closeCamera() {
+                CameraManager.stop();
+                document.getElementById('cameraModal').classList.add('hidden');
+            }
+            
+            capturePhoto() {
+                try {
+                    const imageData = CameraManager.capture();
+                    
+                    // Check size
+                    const size = imageData.length * 0.75;
+                    if (size > CONFIG.MAX_PHOTO_SIZE) {
+                        NotificationManager.show('รูปภาพใหญ่เกินไป', 'กรุณาถ่ายรูปใหม่อีกครั้ง', 'error');
+                        return;
+                    }
+                    
+                    // Display preview
+                    document.getElementById('previewImage').src = imageData;
+                    document.getElementById('photoPreview').classList.remove('hidden');
+                    document.getElementById('photoWarning').classList.add('hidden');
+                    
+                    // Close camera
+                    this.closeCamera();
+                    
+                    NotificationManager.show('ถ่ายรูปสำเร็จ', 'รูปภาพถูกบันทึกเรียบร้อย', 'success');
+                } catch (error) {
+                    console.error('Capture error:', error);
+                    NotificationManager.show('ถ่ายรูปไม่สำเร็จ', 'กรุณาลองอีกครั้ง', 'error');
+                }
+            }
+            
+            removePhoto() {
+                document.getElementById('previewImage').src = '';
+                document.getElementById('photoPreview').classList.add('hidden');
+                document.getElementById('photoWarning').classList.remove('hidden');
+            }
+            
+            async submitInspection(event) {
+                event.preventDefault();
+                
+                // Get form data
+                const maidId = document.getElementById('maidSelect').value;
+                const area = document.getElementById('areaSelect').value;
+                const otherArea = document.getElementById('otherArea').value;
+                const location = document.getElementById('locationInput').value;
+                const rating = document.getElementById('ratingInput').value;
+                const notes = document.getElementById('notes').value;
+                const imageData = document.getElementById('previewImage').src;
+                
+                // Validation
+                if (!maidId) {
+                    NotificationManager.show('กรุณาเลือกแม่บ้าน', 'เลือกแม่บ้านที่ตรวจสอบ', 'error');
+                    return;
+                }
+                
+                if (!area) {
+                    NotificationManager.show('กรุณาเลือกพื้นที่', 'เลือกพื้นที่ที่ตรวจสอบ', 'error');
+                    return;
+                }
+                
+                if (area === 'อื่นๆ' && !otherArea) {
+                    NotificationManager.show('กรุณาระบุพื้นที่', 'ระบุพื้นที่อื่นๆ', 'error');
+                    document.getElementById('otherArea').focus();
+                    return;
+                }
+                
+                if (!location) {
+                    NotificationManager.show('กรุณาระบุจุดที่ตรวจ', 'ระบุจุดที่ตรวจเช่น ห้องพัก 201', 'error');
+                    document.getElementById('locationInput').focus();
+                    return;
+                }
+                
+                if (!rating) {
+                    NotificationManager.show('กรุณาระบุผลการตรวจ', 'เลือกผลการตรวจ', 'error');
+                    return;
+                }
+                
+                if (!imageData || imageData === '' || imageData.startsWith('data:,') || imageData.includes('placeholder')) {
+                    document.getElementById('photoWarning').classList.remove('hidden');
+                    NotificationManager.show('กรุณาถ่ายรูปประกอบ', 'ถ่ายรูปจุดที่ไม่เรียบร้อย', 'error');
+                    return;
+                }
+                
+                // Get maid info
+                const maid = this.maids.find(m => m.id == maidId);
+                if (!maid) {
+                    NotificationManager.show('ไม่พบข้อมูลแม่บ้าน', 'กรุณาเลือกแม่บ้านใหม่', 'error');
+                    return;
+                }
+                
+                // Get problem details
+                const problems = [];
+                if (rating !== 'good') {
+                    document.querySelectorAll('input[name="problems"]:checked').forEach(checkbox => {
+                        problems.push(checkbox.value);
+                    });
+                    
+                    const problemDescription = document.getElementById('problemDescription').value;
+                    if (problemDescription) {
+                        problems.push(problemDescription);
+                    }
+                }
+                
+                // Create inspection record
+                const inspection = {
+                    id: Date.now(),
+                    supervisorId: this.currentSupervisor.id,
+                    supervisorName: this.currentSupervisor.name,
+                    maidId: maid.id,
+                    maidName: maid.name,
+                    maidArea: maid.area,
+                    area: area === 'อื่นๆ' ? otherArea : area,
+                    location: location,
+                    rating: rating,
+                    problems: problems,
+                    notes: notes,
+                    imageData: imageData,
+                    timestamp: new Date().toISOString(),
+                    synced: NetworkManager.isOnline
+                };
+                
+                // Save to storage
+                this.inspections.push(inspection);
+                Storage.set('inspections', this.inspections);
+                
+                // Reset form
+                event.target.reset();
+                this.removePhoto();
+                document.getElementById('problemDetails').classList.add('hidden');
+                document.getElementById('otherArea').classList.add('hidden');
+                
+                // Show success modal
+                document.getElementById('successModal').classList.remove('hidden');
+                
+                // Update UI
+                this.updateTodayInspections();
+                this.updateProfileInfo();
+                
+                // Try to sync if online
+                if (NetworkManager.isOnline) {
+                    this.syncInspection(inspection);
+                }
+                
+                NotificationManager.show('บันทึกสำเร็จ', `บันทึกการตรวจ ${maid.name}`, 'success');
+            }
+            
+            async syncInspection(inspection) {
+                try {
+                    const success = await NetworkManager.exportToGoogleSheets({
+                        type: 'inspection',
+                        data: inspection
+                    });
+                    
+                    if (success) {
+                        // Mark as synced
+                        const index = this.inspections.findIndex(i => i.id === inspection.id);
+                        if (index > -1) {
+                            this.inspections[index].synced = true;
+                            Storage.set('inspections', this.inspections);
+                        }
+                    }
+                } catch (error) {
+                    console.error('Sync error:', error);
+                }
+            }
+            
+            loadHistory(filter = 'all') {
+                const historyList = document.getElementById('historyList');
+                const maidFilter = document.getElementById('historyMaidFilter').value;
+                
+                let filteredInspections = [...this.inspections];
+                
+                // Filter by supervisor
+                if (this.currentSupervisor) {
+                    filteredInspections = filteredInspections.filter(i => i.supervisorId === this.currentSupervisor.id);
+                }
+                
+                // Filter by maid
+                if (maidFilter) {
+                    filteredInspections = filteredInspections.filter(i => i.maidId == maidFilter);
+                }
+                
+                // Apply time/rating filter
+                const now = new Date();
+                if (filter === 'today') {
+                    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                    filteredInspections = filteredInspections.filter(i => 
+                        new Date(i.timestamp) >= today
+                    );
+                } else if (filter === 'week') {
+                    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                    filteredInspections = filteredInspections.filter(i => 
+                        new Date(i.timestamp) >= weekAgo
+                    );
+                } else if (filter === 'poor') {
+                    filteredInspections = filteredInspections.filter(i => 
+                        i.rating === 'poor'
+                    );
+                }
+                
+                // Sort by date (newest first)
+                filteredInspections.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+                
+                if (filteredInspections.length === 0) {
+                    historyList.innerHTML = `
+                        <div class="text-center py-8 text-gray-500">
+                            <i class="fas fa-history text-3xl mb-3 opacity-50"></i>
+                            <p>ยังไม่มีประวัติการตรวจงาน</p>
+                            ${filter !== 'all' ? `<p class="text-sm mt-2">ลองเปลี่ยนตัวกรองดู</p>` : ''}
+                        </div>
+                    `;
+                    return;
+                }
+                
+                historyList.innerHTML = '';
+                
+                filteredInspections.forEach(inspection => {
+                    const date = new Date(inspection.timestamp);
+                    const formattedDate = date.toLocaleDateString('th-TH', {
+                        day: 'numeric',
+                        month: 'short',
+                        year: 'numeric'
+                    });
+                    const formattedTime = date.toLocaleTimeString('th-TH', {
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+                    
+                    const ratingText = {
+                        good: 'เรียบร้อย',
+                        pending: 'ปรับปรุง',
+                        poor: 'ไม่เรียบร้อย'
+                    }[inspection.rating];
+                    
+                    const ratingColor = {
+                        good: 'text-green-600 bg-green-100',
+                        pending: 'text-yellow-600 bg-yellow-100',
+                        poor: 'text-red-600 bg-red-100'
+                    }[inspection.rating];
+                    
+                    const card = document.createElement('div');
+                    card.className = 'bg-white rounded-xl shadow-sm p-4 hover:shadow-md transition-shadow';
+                    card.innerHTML = `
+                        <div class="flex justify-between items-start mb-3">
+                            <div class="flex-1">
+                                <h3 class="font-bold text-gray-800 mb-1">${inspection.maidName}</h3>
+                                <p class="text-gray-600 text-sm">
+                                    <i class="fas fa-map-marker-alt mr-2"></i>${inspection.area} - ${inspection.location}
+                                </p>
+                            </div>
+                            <div class="flex flex-col items-end">
+                                <span class="px-3 py-1 rounded-full text-xs font-medium ${ratingColor} mb-1">
+                                    ${ratingText}
+                                </span>
+                                ${!inspection.synced ? `
+                                    <span class="px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-600">
+                                        <i class="fas fa-wifi-slash mr-1"></i>ออฟไลน์
+                                    </span>
+                                ` : ''}
+                            </div>
+                        </div>
+                        
+                        ${inspection.rating !== 'good' && inspection.problems.length > 0 ? `
+                            <div class="mb-3 p-3 bg-gray-50 rounded-lg">
+                                <p class="text-gray-700 text-sm mb-1">
+                                    <i class="fas fa-exclamation-triangle mr-2"></i>
+                                    <span class="font-medium">ปัญหา:</span>
+                                </p>
+                                <p class="text-gray-600 text-sm">${inspection.problems.join(', ')}</p>
+                            </div>
+                        ` : ''}
+                        
+                        ${inspection.notes ? `
+                            <div class="mb-3">
+                                <p class="text-gray-700 text-sm">
+                                    <i class="fas fa-comment mr-2"></i>
+                                    ${inspection.notes}
+                                </p>
+                            </div>
+                        ` : ''}
+                        
+                        <div class="flex justify-between items-center">
+                            <div class="text-sm text-gray-500">
+                                <i class="far fa-clock mr-2"></i>
+                                ${formattedDate} ${formattedTime}
+                            </div>
+                            <div class="flex space-x-2">
+                                <button class="view-inspection-image text-blue-600 hover:text-blue-800 text-sm" data-image="${inspection.imageData}">
+                                    <i class="fas fa-image mr-1"></i>ดูรูป
+                                </button>
+                                <button class="delete-inspection text-red-600 hover:text-red-800 text-sm" data-id="${inspection.id}">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    
+                    historyList.appendChild(card);
+                });
+                
+                // Add event listeners
+                document.querySelectorAll('.view-inspection-image').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const imageData = e.currentTarget.dataset.image;
+                        this.viewImage(imageData);
+                    });
+                });
+                
+                document.querySelectorAll('.delete-inspection').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const id = parseInt(e.currentTarget.dataset.id);
+                        this.deleteInspection(id);
+                    });
+                });
+            }
+            
+            viewImage(imageData) {
+                document.getElementById('viewerImage').src = imageData;
+                document.getElementById('imageViewerModal').classList.remove('hidden');
+            }
+            
+            deleteInspection(id) {
+                if (confirm('คุณต้องการลบรายการตรวจงานนี้ใช่หรือไม่?')) {
+                    const index = this.inspections.findIndex(i => i.id === id);
+                    if (index > -1) {
+                        this.inspections.splice(index, 1);
+                        Storage.set('inspections', this.inspections);
+                        this.loadHistory();
+                        this.updateProfileInfo();
+                        this.updateTodayInspections();
+                        NotificationManager.show('ลบสำเร็จ', 'รายการตรวจงานถูกลบแล้ว', 'success');
+                    }
+                }
+            }
+            
+            generateReport() {
+                const startDate = document.getElementById('reportStartDate').value;
+                const endDate = document.getElementById('reportEndDate').value;
+                
+                if (!startDate || !endDate) {
+                    NotificationManager.show('กรุณาเลือกช่วงเวลา', 'เลือกวันที่เริ่มต้นและสิ้นสุด', 'error');
+                    return;
+                }
+                
+                const start = new Date(startDate);
+                const end = new Date(endDate);
+                end.setHours(23, 59, 59, 999);
+                
+                // Filter inspections by date range
+                const filteredInspections = this.inspections.filter(inspection => {
+                    const inspectionDate = new Date(inspection.timestamp);
+                    return inspectionDate >= start && inspectionDate <= end;
+                });
+                
+                // Calculate summary
+                const total = filteredInspections.length;
+                const good = filteredInspections.filter(i => i.rating === 'good').length;
+                const pending = filteredInspections.filter(i => i.rating === 'pending').length;
+                const poor = filteredInspections.filter(i => i.rating === 'poor').length;
+                
+                // Update summary cards
+                document.querySelector('#reportSummary div:nth-child(1) div').textContent = total;
+                document.querySelector('#reportSummary div:nth-child(2) div').textContent = good;
+                document.querySelector('#reportSummary div:nth-child(3) div').textContent = pending;
+                document.querySelector('#reportSummary div:nth-child(4) div').textContent = poor;
+                
+                // Calculate maid performance
+                const maidPerformance = {};
+                filteredInspections.forEach(inspection => {
+                    if (!maidPerformance[inspection.maidId]) {
+                        maidPerformance[inspection.maidId] = {
+                            name: inspection.maidName,
+                            total: 0,
+                            good: 0,
+                            poor: 0
+                        };
+                    }
+                    
+                    maidPerformance[inspection.maidId].total++;
+                    if (inspection.rating === 'good') {
+                        maidPerformance[inspection.maidId].good++;
+                    } else if (inspection.rating === 'poor') {
+                        maidPerformance[inspection.maidId].poor++;
+                    }
+                });
+                
+                // Display maid performance
+                const performanceContainer = document.getElementById('maidPerformance');
+                performanceContainer.innerHTML = '';
+                
+                Object.values(maidPerformance).forEach(performance => {
+                    const percentage = performance.total > 0 ? Math.round((performance.good / performance.total) * 100) : 0;
+                    
+                    const row = document.createElement('div');
+                    row.className = 'flex items-center justify-between';
+                    row.innerHTML = `
+                        <div>
+                            <p class="font-medium text-gray-800">${performance.name}</p>
+                            <p class="text-sm text-gray-500">${performance.total} ครั้ง</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="font-bold ${percentage >= 80 ? 'text-green-600' : percentage >= 60 ? 'text-yellow-600' : 'text-red-600'}">
+                                ${percentage}%
+                            </p>
+                            <p class="text-sm text-gray-500">เรียบร้อย</p>
+                        </div>
+                    `;
+                    performanceContainer.appendChild(row);
+                });
+                
+                // Calculate problem areas
+                const problemAreas = {};
+                filteredInspections
+                    .filter(i => i.rating !== 'good')
+                    .forEach(inspection => {
+                        if (!problemAreas[inspection.area]) {
+                            problemAreas[inspection.area] = 0;
+                        }
+                        problemAreas[inspection.area]++;
+                    });
+                
+                // Display problem areas
+                const problemContainer = document.getElementById('problemAreas');
+                problemContainer.innerHTML = '';
+                
+                Object.entries(problemAreas)
+                    .sort((a, b) => b[1] - a[1])
+                    .forEach(([area, count]) => {
+                        const row = document.createElement('div');
+                        row.className = 'flex items-center justify-between py-2 border-b border-gray-100 last:border-0';
+                        row.innerHTML = `
+                            <span class="text-gray-700">${area}</span>
+                            <span class="px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-600">
+                                ${count} ครั้ง
+                            </span>
+                        `;
+                        problemContainer.appendChild(row);
+                    });
+                
+                NotificationManager.show('สร้างรายงานสำเร็จ', `ข้อมูล ${startDate} ถึง ${endDate}`, 'success');
+            }
+            
+            installApp() {
+                if (window.deferredPrompt) {
+                    window.deferredPrompt.prompt();
+                    
+                    window.deferredPrompt.userChoice.then((choiceResult) => {
+                        if (choiceResult.outcome === 'accepted') {
+                            NotificationManager.show('ติดตั้งสำเร็จ', 'แอปถูกติดตั้งบนอุปกรณ์แล้ว', 'success');
+                        }
+                        window.deferredPrompt = null;
+                    });
+                } else {
+                    NotificationManager.show('ข้อมูล', 'คุณสามารถติดตั้งแอปผ่านเมนูของเบราว์เซอร์', 'info');
+                }
+            }
+            
+            exportData() {
+                if (this.inspections.length === 0) {
+                    NotificationManager.show('ไม่มีข้อมูล', 'ยังไม่มีข้อมูลการตรวจงาน', 'warning');
+                    return;
+                }
+                
+                // Create CSV content
+                let csv = 'วันที่,เวลา,หัวหน้า,แม่บ้าน,พื้นที่,จุดตรวจ,ผลการตรวจ,ปัญหา,หมายเหตุ\n';
+                
+                this.inspections.forEach(inspection => {
+                    const date = new Date(inspection.timestamp);
+                    const dateStr = date.toLocaleDateString('th-TH');
+                    const timeStr = date.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+                    
+                    const ratingText = {
+                        good: 'เรียบร้อย',
+                        pending: 'ปรับปรุง',
+                        poor: 'ไม่เรียบร้อย'
+                    }[inspection.rating];
+                    
+                    const problems = inspection.problems.join('; ');
+                    
+                    csv += `"${dateStr}","${timeStr}","${inspection.supervisorName}","${inspection.maidName}","${inspection.area}","${inspection.location}","${ratingText}","${problems}","${inspection.notes || ''}"\n`;
+                });
+                
+                // Create download link
+                const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.setAttribute('download', `รายงานตรวจงาน_${new Date().toISOString().split('T')[0]}.csv`);
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                NotificationManager.show('ส่งออกสำเร็จ', 'ข้อมูลถูกดาวน์โหลดเป็นไฟล์ CSV', 'success');
+            }
+            
+            clearData() {
+                if (confirm('คุณต้องการล้างข้อมูลทั้งหมดใช่หรือไม่?\nข้อมูลทั้งหมดจะถูกลบออกจากอุปกรณ์นี้')) {
+                    Storage.clear();
+                    location.reload();
+                }
+            }
+        }
+        
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', () => {
+            window.app = new MaidInspectionApp();
+        });
+        
+        // Service Worker Registration (for GitHub Pages)
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                // Register service worker from same directory
+                navigator.serviceWorker.register('./service-worker.js')
+                    .then(registration => {
+                        console.log('ServiceWorker registered:', registration);
+                    })
+                    .catch(error => {
+                        console.log('ServiceWorker registration failed:', error);
+                    });
+            });
+        }
+    </script>
+</body>
+</html>
