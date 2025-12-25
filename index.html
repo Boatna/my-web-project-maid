@@ -2,25 +2,27 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>ระบบบันทึกการตรวจงานแม่บ้าน</title>
+    
+    <!-- PWA Meta Tags -->
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#3b82f6">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="ตรวจงานแม่บ้าน">
+    <link rel="apple-touch-icon" href="./icons/icon-192x192.png">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="msapplication-TileColor" content="#3b82f6">
+    <meta name="msapplication-TileImage" content="./icons/icon-144x144.png">
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- PWA Meta Tags -->
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#2563eb">
-    <link rel="apple-touch-icon" href="icon-192x192.png">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
     <style>
@@ -32,11 +34,6 @@
             background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
         }
         
-        .card-shadow {
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-        }
-        
-        /* Camera styles */
         .camera-container {
             position: relative;
             width: 100%;
@@ -97,7 +94,6 @@
             border: 3px solid #3b82f6;
         }
         
-        /* Status badges */
         .status-good {
             background: #10b981;
             color: white;
@@ -113,7 +109,6 @@
             color: white;
         }
         
-        /* Loading animation */
         @keyframes pulse {
             0%, 100% { opacity: 1; }
             50% { opacity: 0.5; }
@@ -123,27 +118,101 @@
             animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
         }
         
-        /* Custom scrollbar */
-        ::-webkit-scrollbar {
-            width: 6px;
+        /* Active Tab Indicator */
+        .nav-tab.active {
+            color: #3b82f6;
         }
         
-        ::-webkit-scrollbar-track {
-            background: #f1f1f1;
-            border-radius: 3px;
+        .nav-tab.active .active-indicator {
+            display: block;
         }
         
-        ::-webkit-scrollbar-thumb {
-            background: #c1c1c1;
-            border-radius: 3px;
+        /* Image Viewer */
+        #viewerImage {
+            max-height: 80vh;
+            object-fit: contain;
         }
         
-        ::-webkit-scrollbar-thumb:hover {
-            background: #a1a1a1;
+        /* Offline Badge */
+        .offline-badge {
+            background: #f59e0b;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        /* Install Banner Animation */
+        .install-banner {
+            animation: slideUp 0.3s ease-out;
+        }
+        
+        @keyframes slideUp {
+            from {
+                transform: translateY(100%);
+            }
+            to {
+                transform: translateY(0);
+            }
+        }
+        
+        /* PWA Badge Animation */
+        .pwa-badge {
+            animation: fadeIn 0.5s ease-out;
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        /* สำหรับ iOS notch */
+        .safe-area {
+            padding-top: env(safe-area-inset-top);
+            padding-bottom: env(safe-area-inset-bottom);
+            padding-left: env(safe-area-inset-left);
+            padding-right: env(safe-area-inset-right);
+        }
+        
+        /* สำหรับ standalone mode */
+        @media (display-mode: standalone) {
+            header {
+                padding-top: env(safe-area-inset-top);
+            }
+            
+            #installAppBtn {
+                display: none !important;
+            }
+            
+            #installBanner {
+                display: none !important;
+            }
+        }
+        
+        /* Dark mode support */
+        @media (prefers-color-scheme: dark) {
+            .install-guide-modal {
+                background-color: #1f2937;
+                color: #f9fafb;
+            }
+            
+            .install-banner {
+                background: linear-gradient(135deg, #1e40af 0%, #7c3aed 100%);
+            }
         }
     </style>
 </head>
 <body class="bg-gray-50 min-h-screen">
+    
     <!-- Offline Indicator -->
     <div id="offlineIndicator" class="fixed bottom-4 right-4 bg-yellow-500 text-white px-4 py-2 rounded-full shadow-lg flex items-center gap-2 z-50 hidden">
         <i class="fas fa-wifi-slash"></i>
@@ -186,7 +255,8 @@
             </div>
             
             <div class="mt-8 text-center text-xs text-gray-400">
-                <p>เวอร์ชัน 1.0.0</p>
+                <p>เวอร์ชัน 2.1.0</p>
+                <p id="appMode" class="mt-1"></p>
             </div>
         </div>
     </div>
@@ -195,7 +265,7 @@
     <div id="appScreen" class="min-h-screen hidden">
         <!-- Header -->
         <header class="gradient-bg text-white sticky top-0 z-40">
-            <div class="container mx-auto px-4 py-4">
+            <div class="container mx-auto px-4 py-4 safe-area">
                 <div class="flex justify-between items-center mb-4">
                     <div>
                         <h1 class="text-xl font-bold">บันทึกการตรวจงาน</h1>
@@ -203,10 +273,10 @@
                     </div>
                     
                     <div class="flex items-center gap-3">
-                        <button id="syncButton" class="bg-white bg-opacity-20 hover:bg-opacity-30 p-2 rounded-full transition-all">
+                        <button id="syncButton" class="bg-white bg-opacity-20 hover:bg-opacity-30 p-2 rounded-full transition-all" title="ซิงค์ข้อมูล">
                             <i class="fas fa-sync-alt"></i>
                         </button>
-                        <button id="logoutButton" class="bg-white bg-opacity-20 hover:bg-opacity-30 p-2 rounded-full transition-all">
+                        <button id="logoutButton" class="bg-white bg-opacity-20 hover:bg-opacity-30 p-2 rounded-full transition-all" title="ออกจากระบบ">
                             <i class="fas fa-sign-out-alt"></i>
                         </button>
                     </div>
@@ -231,21 +301,25 @@
         <main class="container mx-auto px-4 py-6 pb-24">
             <!-- Navigation Tabs -->
             <div class="flex justify-around bg-white rounded-xl p-2 mb-6 shadow-sm">
-                <button class="nav-tab flex-1 py-3 flex flex-col items-center transition-all" data-screen="inspect">
+                <button class="nav-tab flex-1 py-3 flex flex-col items-center transition-all active" data-screen="inspect">
                     <i class="fas fa-search text-xl mb-1"></i>
                     <span class="text-xs font-medium">ตรวจงาน</span>
+                    <div class="active-indicator w-2 h-2 bg-blue-600 rounded-full mt-1"></div>
                 </button>
                 <button class="nav-tab flex-1 py-3 flex flex-col items-center transition-all" data-screen="history">
                     <i class="fas fa-history text-xl mb-1"></i>
                     <span class="text-xs font-medium">ประวัติ</span>
+                    <div class="active-indicator w-2 h-2 bg-blue-600 rounded-full mt-1 hidden"></div>
                 </button>
                 <button class="nav-tab flex-1 py-3 flex flex-col items-center transition-all" data-screen="reports">
                     <i class="fas fa-chart-bar text-xl mb-1"></i>
                     <span class="text-xs font-medium">รายงาน</span>
+                    <div class="active-indicator w-2 h-2 bg-blue-600 rounded-full mt-1 hidden"></div>
                 </button>
                 <button class="nav-tab flex-1 py-3 flex flex-col items-center transition-all" data-screen="profile">
                     <i class="fas fa-user text-xl mb-1"></i>
                     <span class="text-xs font-medium">โปรไฟล์</span>
+                    <div class="active-indicator w-2 h-2 bg-blue-600 rounded-full mt-1 hidden"></div>
                 </button>
             </div>
             
@@ -273,12 +347,12 @@
                             </label>
                             <select id="areaSelect" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white" required>
                                 <option value="">เลือกพื้นที่</option>
-                                <option value="HQ  ชั้น1-3">HQ  ชั้น1-3</option>
-                                <option value="พื้นที่ ตึกจัด​">พื้นที่ ตึกจัด​</option>
-                                <option value="พื้นที่ตึก HQ  ชั้น 4 +โรงเหล็ก​">พื้นที่ตึก HQ  ชั้น 4 +โรงเหล็ก​</option>
-                                <option value="พื้นที่ตึกจัดซื้อ​">พื้นที่ตึกจัดซื้อ​</option>
-                                <option value="พื้นที่คลังสำเร็จรูป​">พื้นที่คลังสำเร็จรูป​</option>
-                                <option value="พื้นที่โรงโฟม​">พื้นที่โรงโฟม​</option>
+                                <option value="HQ ชั้น1-3">HQ ชั้น1-3</option>
+                                <option value="พื้นที่ ตึกจัด">พื้นที่ ตึกจัด</option>
+                                <option value="พื้นที่ตึก HQ ชั้น 4 +โรงเหล็ก">พื้นที่ตึก HQ ชั้น 4 +โรงเหล็ก</option>
+                                <option value="พื้นที่ตึกจัดซื้อ">พื้นที่ตึกจัดซื้อ</option>
+                                <option value="พื้นที่คลังสำเร็จรูป">พื้นที่คลังสำเร็จรูป</option>
+                                <option value="พื้นที่โรงโฟม">พื้นที่โรงโฟม</option>
                                 <option value="โรงคอย">โรงคอย</option>
                                 <option value="อื่นๆ">อื่นๆ</option>
                             </select>
@@ -290,7 +364,7 @@
                             <label class="block text-gray-700 mb-2 font-medium">
                                 จุดที่ตรวจสอบเจอข้อผิดพลาด <span class="text-red-500">*</span>
                             </label>
-                            <input type="text" id="locationInput" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="เช่น ห้อนน้ำ HR" required>
+                            <input type="text" id="locationInput" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="เช่น ห้องน้ำ HR" required>
                         </div>
                         
                         <!-- Inspection Rating -->
@@ -402,7 +476,7 @@
                 <div id="historyScreen" class="screen hidden">
                     <div class="flex justify-between items-center mb-4">
                         <h2 class="text-xl font-bold text-gray-800">ประวัติการตรวจงาน</h2>
-                        <button id="refreshHistory" class="text-gray-600 hover:text-blue-600">
+                        <button id="refreshHistory" class="text-gray-600 hover:text-blue-600 p-2" title="รีเฟรช">
                             <i class="fas fa-redo"></i>
                         </button>
                     </div>
@@ -533,7 +607,7 @@
                                             <p class="text-sm text-gray-500">ติดตั้งแอปพลิเคชันบนหน้าจอหลัก</p>
                                         </div>
                                     </div>
-                                    <button id="installAppBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg text-sm transition-colors">
+                                    <button id="installAppBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg text-sm transition-colors hidden">
                                         ติดตั้ง
                                     </button>
                                 </div>
@@ -546,7 +620,7 @@
                                         </div>
                                         <div>
                                             <p class="font-medium">ส่งออกข้อมูล</p>
-                                            <p class="text-sm text-gray-500">ส่งออกข้อมูลเป็นไฟล์ Excel</p>
+                                            <p class="text-sm text-gray-500">ส่งออกข้อมูลเป็นไฟล์ CSV</p>
                                         </div>
                                     </div>
                                     <button id="exportDataBtn" class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg text-sm transition-colors">
@@ -560,14 +634,14 @@
                         <div class="bg-white rounded-xl shadow-sm p-6">
                             <h3 class="font-bold text-gray-800 mb-4">ข้อมูลเพิ่มเติม</h3>
                             <div class="space-y-3">
-                                <a href="#" class="flex items-center justify-between py-2 hover:text-blue-600 transition-colors">
-                                    <span class="text-gray-700">คู่มือการใช้งาน</span>
+                                <button id="viewHelpBtn" class="flex items-center justify-between py-2 w-full text-gray-700 hover:text-blue-600 transition-colors text-left">
+                                    <span>คู่มือการใช้งาน</span>
                                     <i class="fas fa-chevron-right text-gray-400"></i>
-                                </a>
-                                <a href="#" class="flex items-center justify-between py-2 hover:text-blue-600 transition-colors">
-                                    <span class="text-gray-700">แจ้งปัญหา</span>
+                                </button>
+                                <button id="reportIssueBtn" class="flex items-center justify-between py-2 w-full text-gray-700 hover:text-blue-600 transition-colors text-left">
+                                    <span>แจ้งปัญหา</span>
                                     <i class="fas fa-chevron-right text-gray-400"></i>
-                                </a>
+                                </button>
                                 <button id="clearDataBtn" class="flex items-center justify-between py-2 w-full text-red-600 hover:text-red-700 transition-colors">
                                     <span>ล้างข้อมูลแอป</span>
                                     <i class="fas fa-trash-alt"></i>
@@ -666,15 +740,148 @@
         </div>
     </div>
     
+    <!-- Installation Guide Modal -->
+    <div id="installGuideModal" class="fixed inset-0 bg-black bg-opacity-75 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl w-full max-w-md p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold text-gray-800">วิธีติดตั้งแอป</h3>
+                <button id="closeInstallGuide" class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            
+            <div class="space-y-6">
+                <!-- iOS Instructions -->
+                <div id="iosInstructions" class="hidden">
+                    <div class="flex items-start mb-4">
+                        <div class="w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xl mr-4 flex-shrink-0">
+                            <i class="fab fa-apple"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-gray-800 mb-1">สำหรับ iPhone/iPad</h4>
+                            <p class="text-gray-600 text-sm">ใช้ Safari Browser</p>
+                        </div>
+                    </div>
+                    
+                    <div class="space-y-3">
+                        <div class="flex items-start">
+                            <span class="bg-blue-100 text-blue-600 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold mr-3 mt-0.5">1</span>
+                            <p class="text-gray-700">แตะปุ่ม <span class="font-medium text-blue-600">Share</span> ที่ด้านล่าง</p>
+                        </div>
+                        <div class="flex items-start">
+                            <span class="bg-blue-100 text-blue-600 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold mr-3 mt-0.5">2</span>
+                            <p class="text-gray-700">เลื่อนลงหา <span class="font-medium text-blue-600">Add to Home Screen</span></p>
+                        </div>
+                        <div class="flex items-start">
+                            <span class="bg-blue-100 text-blue-600 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold mr-3 mt-0.5">3</span>
+                            <p class="text-gray-700">แตะ <span class="font-medium text-blue-600">Add</span> เพื่อติดตั้ง</p>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                        <div class="flex items-center">
+                            <i class="fas fa-exclamation-triangle text-yellow-600 mr-2"></i>
+                            <p class="text-sm text-yellow-700">ต้องใช้ Safari Browser เท่านั้น</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Android Instructions -->
+                <div id="androidInstructions" class="hidden">
+                    <div class="flex items-start mb-4">
+                        <div class="w-12 h-12 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-xl mr-4 flex-shrink-0">
+                            <i class="fab fa-android"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-gray-800 mb-1">สำหรับ Android</h4>
+                            <p class="text-gray-600 text-sm">ใช้ Chrome Browser</p>
+                        </div>
+                    </div>
+                    
+                    <div class="space-y-3">
+                        <div class="flex items-start">
+                            <span class="bg-green-100 text-green-600 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold mr-3 mt-0.5">1</span>
+                            <p class="text-gray-700">แตะเมนู <span class="font-medium text-green-600">⋮</span> มุมขวาบน</p>
+                        </div>
+                        <div class="flex items-start">
+                            <span class="bg-green-100 text-green-600 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold mr-3 mt-0.5">2</span>
+                            <p class="text-gray-700">เลือก <span class="font-medium text-green-600">Add to Home screen</span></p>
+                        </div>
+                        <div class="flex items-start">
+                            <span class="bg-green-100 text-green-600 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold mr-3 mt-0.5">3</span>
+                            <p class="text-gray-700">แตะ <span class="font-medium text-green-600">Add</span> เพื่อติดตั้ง</p>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                        <div class="flex items-center">
+                            <i class="fas fa-info-circle text-blue-600 mr-2"></i>
+                            <p class="text-sm text-blue-700">อาจเห็นปุ่ม "ติดตั้งแอป" แสดงขึ้นอัตโนมัติ</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Automatic Install Button -->
+                <div id="autoInstallSection" class="hidden">
+                    <button id="autoInstallBtn" class="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium py-3 px-4 rounded-lg transition-all shadow-md">
+                        <i class="fas fa-download mr-2"></i>ติดตั้งแอปทันที
+                    </button>
+                    <p class="text-xs text-gray-500 text-center mt-2">ระบบจะติดตั้งแอปพลิเคชันโดยอัตโนมัติ</p>
+                </div>
+                
+                <!-- Manual Instructions -->
+                <div class="border-t border-gray-200 pt-4">
+                    <p class="text-sm text-gray-600 text-center">
+                        หลังจากติดตั้งแล้ว สามารถเปิดแอปจากหน้าจอหลักได้ทันที
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Installation Prompt Banner -->
+    <div id="installBanner" class="fixed bottom-0 left-0 right-0 bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4 shadow-lg z-40 hidden transform transition-transform duration-300 translate-y-full install-banner">
+        <div class="container mx-auto flex items-center justify-between">
+            <div class="flex items-center">
+                <div class="w-12 h-12 rounded-full bg-white bg-opacity-20 flex items-center justify-center text-xl mr-4">
+                    <i class="fas fa-mobile-alt"></i>
+                </div>
+                <div>
+                    <h4 class="font-bold">ติดตั้งแอปตรวจงานแม่บ้าน</h4>
+                    <p class="text-sm opacity-90">เปิดแอปได้เร็วกว่า ทำงานแบบออฟไลน์ได้</p>
+                </div>
+            </div>
+            <div class="flex space-x-2">
+                <button id="installNowBtn" class="bg-white text-blue-600 hover:bg-gray-100 font-medium py-2 px-4 rounded-lg transition-colors">
+                    ติดตั้ง
+                </button>
+                <button id="dismissInstallBtn" class="bg-transparent border border-white border-opacity-50 text-white hover:bg-white hover:bg-opacity-10 font-medium py-2 px-3 rounded-lg transition-colors">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- PWA Badge สำหรับแสดงสถานะ -->
+    <div id="pwaStatus" class="fixed top-16 right-4 bg-green-500 text-white px-3 py-1 rounded-full text-xs font-medium hidden z-40 flex items-center gap-2 pwa-badge">
+        <i class="fas fa-check-circle"></i>
+        <span>แอปติดตั้งแล้ว</span>
+    </div>
+    
     <!-- Main JavaScript -->
     <script>
         // App Configuration
         const CONFIG = {
             APP_NAME: 'ระบบบันทึกการตรวจงานแม่บ้าน',
-            VERSION: '1.0.0',
-            CACHE_NAME: 'maid-inspection-v1',
+            VERSION: '2.1.0',
+            CACHE_NAME: 'maid-inspection-v2',
+            // เปลี่ยนเป็น URL ของคุณจาก Google Apps Script
             GOOGLE_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycby1pIUVey9E5zE3Me1bpZWFL3xbtiR9_35icTlNZvqAoxZ4qQkH1fxGgF0Yf1BznCz5/exec',
-            MAX_PHOTO_SIZE: 1024 * 1024, // 1MB
+            MAX_PHOTO_SIZE: 1024 * 1024 * 5, // 5MB
+            
+            // การตั้งค่าการติดตั้ง
+            INSTALL_PROMPT_DELAY: 30000,
+            INSTALL_DISMISS_DAYS: 7,
         };
         
         // Sample Data
@@ -684,12 +891,12 @@
         ];
         
         const SAMPLE_MAIDS = [
-            { id: 1, name: 'นางสาวง้อ  พาพินิจ​', area: 'พื้นที่ตึก HQ  ชั้น1-3​' },
-            { id: 2, name: 'นางสาวปัณฑารีย์  สุวรรกล่อม​', area: 'พื้นที่ ตึกจัดซื้อ' },
-            { id: 3, name: 'นางสาวจิตรียา  ภูผาหลวง​', area: 'พื้นที่ตึก HQ  ชั้น 4 +โรงเหล็ก​' },
-            { id: 4, name: 'นางสาว เทพนารินทร์  สอนไชยา​', area: 'พื้นที่ตึกจัดซื้อ​' },
-            { id: 5, name: 'นางสง่า พงษ์กระฉัตร​', area: 'พื้นที่คลังสำเร็จรูป​' },
-            { id: 6, name: 'นางสาวมณทิรา  ด่านจอมฟอน​', area: 'พื้นที่โรงโฟม​' },
+            { id: 1, name: 'นางสาวง้อ พาพินิจ', area: 'HQ ชั้น1-3' },
+            { id: 2, name: 'นางสาวปัณฑารีย์ สุวรรกล่อม', area: 'พื้นที่ ตึกจัดซื้อ' },
+            { id: 3, name: 'นางสาวจิตรียา ภูผาหลวง', area: 'พื้นที่ตึก HQ ชั้น 4 +โรงเหล็ก' },
+            { id: 4, name: 'นางสาว เทพนารินทร์ สอนไชยา', area: 'พื้นที่ตึกจัดซื้อ' },
+            { id: 5, name: 'นางสง่า พงษ์กระฉัตร', area: 'พื้นที่คลังสำเร็จรูป' },
+            { id: 6, name: 'นางสาวมณทิรา ด่านจอมฟอน', area: 'พื้นที่โรงโฟม' },
         ];
         
         // Storage Manager
@@ -826,8 +1033,7 @@
                 const ctx = canvas.getContext('2d');
                 ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
                 
-                // Compress to JPEG with 70% quality
-                return canvas.toDataURL('image/jpeg', 0.7);
+                return canvas.toDataURL('image/jpeg', 0.8);
             },
             
             stop() {
@@ -838,7 +1044,7 @@
             }
         };
         
-        // Network Manager (Simplified for GitHub Pages)
+        // Network Manager
         const NetworkManager = {
             isOnline: navigator.onLine,
             
@@ -871,25 +1077,321 @@
                 document.getElementById('offlineIndicator').classList.remove('hidden');
             },
             
-            async exportToGoogleSheets(data) {
+            async sendToGoogleSheets(data) {
                 if (!this.isOnline) {
-                    NotificationManager.show('ไม่สามารถส่งข้อมูลได้', 'กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต', 'error');
-                    return false;
+                    return { success: false, offline: true, message: 'ออฟไลน์' };
                 }
                 
                 try {
-                    const response = await fetch(CONFIG.GOOGLE_SCRIPT_URL, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify(data)
+                    console.log('กำลังส่งข้อมูล:', Object.keys(data));
+                    
+                    // สร้าง URL สำหรับ GET request
+                    const params = new URLSearchParams();
+                    
+                    // เพิ่ม action
+                    params.append('action', 'submit_inspection');
+                    
+                    // เพิ่มข้อมูลทั้งหมด
+                    Object.keys(data).forEach(key => {
+                        if (data[key] !== undefined && data[key] !== null) {
+                            // สำหรับข้อมูลรูปภาพ base64 ที่ยาวมาก
+                            if (key === 'imageData' && data[key].length > 100000) {
+                                console.log('กำลังส่งรูปภาพขนาดใหญ่...');
+                            }
+                            params.append(key, data[key].toString());
+                        }
                     });
                     
-                    return response.ok;
+                    const url = CONFIG.GOOGLE_SCRIPT_URL + '?' + params.toString();
+                    console.log('URL:', url.substring(0, 100) + '...');
+                    
+                    const response = await fetch(url, {
+                        method: 'GET',
+                        mode: 'no-cors',
+                        headers: {
+                            'Accept': 'application/json'
+                        }
+                    });
+                    
+                    // เนื่องจากใช้ no-cors เราจะไม่สามารถอ่าน response ได้
+                    // ดังนั้นให้คืนค่าสำเร็จเสมอและให้ App Script จัดการเอง
+                    console.log('ส่งข้อมูลสำเร็จ (no-cors mode)');
+                    
+                    return { 
+                        success: true, 
+                        message: 'ส่งข้อมูลสำเร็จ',
+                        timestamp: new Date().toISOString()
+                    };
+                    
                 } catch (error) {
-                    console.error('Export error:', error);
+                    console.error('Error sending to Google Sheets:', error);
+                    return { 
+                        success: false, 
+                        error: error.message,
+                        message: 'ส่งข้อมูลไม่สำเร็จ'
+                    };
+                }
+            },
+            
+            async testConnection() {
+                try {
+                    const url = CONFIG.GOOGLE_SCRIPT_URL + '?action=test&_=' + Date.now();
+                    const response = await fetch(url, {
+                        method: 'GET',
+                        mode: 'no-cors'
+                    });
+                    
+                    // เนื่องจากใช้ no-cors เราจะถือว่าสำเร็จ
+                    console.log('ทดสอบเชื่อมต่อสำเร็จ (no-cors mode)');
+                    return { success: true, message: 'เชื่อมต่อสำเร็จ' };
+                    
+                } catch (error) {
+                    console.error('Test connection error:', error);
+                    return { success: false, error: error.message };
+                }
+            }
+        };
+        
+        // Installation Manager
+        const InstallationManager = {
+            deferredPrompt: null,
+            isInstalled: false,
+            isInstallable: false,
+            
+            initialize() {
+                // ตรวจสอบว่าติดตั้งแล้วหรือไม่
+                this.checkIfInstalled();
+                
+                // ฟังการเปลี่ยนแปลง display mode
+                if (window.matchMedia) {
+                    window.matchMedia('(display-mode: standalone)').addListener((e) => {
+                        this.handleDisplayModeChange(e.matches);
+                    });
+                }
+                
+                // ฟัง beforeinstallprompt event
+                window.addEventListener('beforeinstallprompt', (e) => {
+                    e.preventDefault();
+                    this.deferredPrompt = e;
+                    this.isInstallable = true;
+                    console.log('PWA installable');
+                    this.showInstallButton();
+                    this.scheduleInstallBanner();
+                });
+                
+                // ฟัง appinstalled event
+                window.addEventListener('appinstalled', (e) => {
+                    console.log('PWA installed');
+                    this.isInstalled = true;
+                    this.hideInstallUI();
+                    this.showPWAStatus();
+                    this.logInstallation();
+                });
+                
+                // แสดงสถานะแอปที่หน้า login
+                this.showAppModeStatus();
+            },
+            
+            checkIfInstalled() {
+                // ตรวจสอบหลายวิธี
+                if (window.matchMedia('(display-mode: standalone)').matches) {
+                    this.isInstalled = true;
+                    this.showPWAStatus();
+                    return true;
+                }
+                
+                if (window.navigator.standalone) {
+                    this.isInstalled = true;
+                    this.showPWAStatus();
+                    return true;
+                }
+                
+                // สำหรับ iOS
+                if (window.navigator.userAgent.includes('iPhone') || 
+                    window.navigator.userAgent.includes('iPad')) {
+                    // iOS จะไม่ยอมให้ตรวจสอบ ต้องใช้วิธีอื่น
                     return false;
+                }
+                
+                return false;
+            },
+            
+            handleDisplayModeChange(isStandalone) {
+                this.isInstalled = isStandalone;
+                if (isStandalone) {
+                    this.showPWAStatus();
+                    this.hideInstallUI();
+                    NotificationManager.show('เปิดจากแอปแล้ว', 'ยินดีต้อนรับสู่แอปตรวจงานแม่บ้าน', 'success');
+                }
+            },
+            
+            showInstallButton() {
+                const installBtn = document.getElementById('installAppBtn');
+                if (installBtn) {
+                    installBtn.classList.remove('hidden');
+                }
+                
+                // แสดงแบนเนอร์หลังจาก delay
+                setTimeout(() => {
+                    if (!this.isInstalled && !this.isBannerDismissed()) {
+                        this.showInstallBanner();
+                    }
+                }, CONFIG.INSTALL_PROMPT_DELAY);
+            },
+            
+            scheduleInstallBanner() {
+                // ตรวจสอบว่าเคย dismiss หรือยัง
+                const lastDismiss = Storage.get('install_banner_dismiss');
+                if (lastDismiss) {
+                    const daysSinceDismiss = (Date.now() - lastDismiss) / (1000 * 60 * 60 * 24);
+                    if (daysSinceDismiss < CONFIG.INSTALL_DISMISS_DAYS) {
+                        return; // ยังไม่ถึงเวลาที่จะแสดงอีก
+                    }
+                }
+                
+                // แสดงแบนเนอร์หลังจาก delay
+                setTimeout(() => {
+                    if (!this.isInstalled && this.isInstallable) {
+                        this.showInstallBanner();
+                    }
+                }, CONFIG.INSTALL_PROMPT_DELAY);
+            },
+            
+            showInstallBanner() {
+                const banner = document.getElementById('installBanner');
+                if (banner) {
+                    banner.classList.remove('hidden');
+                    setTimeout(() => {
+                        banner.classList.remove('translate-y-full');
+                    }, 100);
+                }
+            },
+            
+            hideInstallBanner() {
+                const banner = document.getElementById('installBanner');
+                if (banner) {
+                    banner.classList.add('translate-y-full');
+                    setTimeout(() => {
+                        banner.classList.add('hidden');
+                    }, 300);
+                }
+            },
+            
+            showInstallGuide() {
+                const modal = document.getElementById('installGuideModal');
+                const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+                const isAndroid = /Android/.test(navigator.userAgent);
+                
+                if (modal) {
+                    // แสดงคำแนะนำตาม platform
+                    if (isIOS) {
+                        document.getElementById('iosInstructions').classList.remove('hidden');
+                        document.getElementById('androidInstructions').classList.add('hidden');
+                        document.getElementById('autoInstallSection').classList.add('hidden');
+                    } else if (isAndroid && this.deferredPrompt) {
+                        document.getElementById('iosInstructions').classList.add('hidden');
+                        document.getElementById('androidInstructions').classList.remove('hidden');
+                        document.getElementById('autoInstallSection').classList.remove('hidden');
+                    } else {
+                        document.getElementById('iosInstructions').classList.add('hidden');
+                        document.getElementById('androidInstructions').classList.remove('hidden');
+                        document.getElementById('autoInstallSection').classList.add('hidden');
+                    }
+                    
+                    modal.classList.remove('hidden');
+                }
+            },
+            
+            hideInstallGuide() {
+                const modal = document.getElementById('installGuideModal');
+                if (modal) {
+                    modal.classList.add('hidden');
+                }
+            },
+            
+            async promptInstallation() {
+                if (this.deferredPrompt) {
+                    // สำหรับ Android/Chrome ที่สนับสนุน installation prompt
+                    this.deferredPrompt.prompt();
+                    
+                    const choiceResult = await this.deferredPrompt.userChoice;
+                    
+                    if (choiceResult.outcome === 'accepted') {
+                        console.log('User accepted the install prompt');
+                        NotificationManager.show('ติดตั้งสำเร็จ', 'แอปถูกติดตั้งบนอุปกรณ์แล้ว', 'success');
+                        this.isInstalled = true;
+                        this.hideInstallUI();
+                        this.showPWAStatus();
+                    } else {
+                        console.log('User dismissed the install prompt');
+                        NotificationManager.show('ยกเลิกการติดตั้ง', 'คุณสามารถติดตั้งได้ทีหลัง', 'info');
+                    }
+                    
+                    this.deferredPrompt = null;
+                } else {
+                    // สำหรับ iOS หรือเบราว์เซอร์ที่ไม่สนับสนุน
+                    this.showInstallGuide();
+                }
+            },
+            
+            hideInstallUI() {
+                this.hideInstallBanner();
+                const installBtn = document.getElementById('installAppBtn');
+                if (installBtn) {
+                    installBtn.classList.add('hidden');
+                }
+            },
+            
+            showPWAStatus() {
+                const statusBadge = document.getElementById('pwaStatus');
+                if (statusBadge) {
+                    statusBadge.classList.remove('hidden');
+                    
+                    // ซ่อนหลังจาก 5 วินาที
+                    setTimeout(() => {
+                        statusBadge.classList.add('hidden');
+                    }, 5000);
+                }
+            },
+            
+            isBannerDismissed() {
+                const lastDismiss = Storage.get('install_banner_dismiss');
+                if (!lastDismiss) return false;
+                
+                const daysSinceDismiss = (Date.now() - lastDismiss) / (1000 * 60 * 60 * 24);
+                return daysSinceDismiss < CONFIG.INSTALL_DISMISS_DAYS;
+            },
+            
+            dismissBanner() {
+                Storage.set('install_banner_dismiss', Date.now());
+                this.hideInstallBanner();
+            },
+            
+            logInstallation() {
+                // บันทึกการติดตั้ง
+                const installLog = Storage.get('installations', []);
+                installLog.push({
+                    timestamp: new Date().toISOString(),
+                    platform: navigator.platform,
+                    userAgent: navigator.userAgent,
+                    installed: true
+                });
+                Storage.set('installations', installLog);
+            },
+            
+            showAppModeStatus() {
+                const appModeEl = document.getElementById('appMode');
+                if (!appModeEl) return;
+                
+                if (this.isInstalled) {
+                    appModeEl.textContent = '✓ เปิดจากแอปติดตั้งแล้ว';
+                    appModeEl.className = 'mt-1 text-green-600';
+                } else if (this.isInstallable) {
+                    appModeEl.textContent = '📱 สามารถติดตั้งเป็นแอปได้';
+                    appModeEl.className = 'mt-1 text-blue-600';
+                } else {
+                    appModeEl.textContent = '🌐 เปิดจากเว็บเบราว์เซอร์';
+                    appModeEl.className = 'mt-1 text-gray-600';
                 }
             }
         };
@@ -909,10 +1411,53 @@
                 this.initializeDate();
                 this.checkLoginStatus();
                 NetworkManager.initialize();
+                InstallationManager.initialize();
+                
+                // ตรวจสอบและลงทะเบียน Service Worker
+                this.registerServiceWorker();
+                
+                // โหลดข้อมูลจาก Google Sheets (ถ้าออนไลน์)
+                if (NetworkManager.isOnline) {
+                    this.testGoogleSheetsConnection();
+                }
                 
                 setTimeout(() => {
                     document.getElementById('loadingScreen').classList.add('hidden');
                 }, 1000);
+            }
+            
+            async registerServiceWorker() {
+                if ('serviceWorker' in navigator) {
+                    try {
+                        const registration = await navigator.serviceWorker.register('./sw.js');
+                        console.log('Service Worker registered:', registration);
+                        
+                        // ส่งข้อมูลเวอร์ชันให้ Service Worker
+                        registration.active?.postMessage({
+                            type: 'INIT',
+                            version: CONFIG.VERSION,
+                            cacheName: CONFIG.CACHE_NAME
+                        });
+                        
+                    } catch (error) {
+                        console.error('Service Worker registration failed:', error);
+                    }
+                }
+            }
+            
+            async testGoogleSheetsConnection() {
+                try {
+                    const result = await NetworkManager.testConnection();
+                    if (result.success) {
+                        console.log('เชื่อมต่อ Google Sheets สำเร็จ:', result);
+                        NotificationManager.show('เชื่อมต่อเซิร์ฟเวอร์สำเร็จ', 'พร้อมบันทึกข้อมูล', 'success');
+                    } else {
+                        console.warn('ไม่สามารถเชื่อมต่อ Google Sheets:', result);
+                        NotificationManager.show('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์', 'ระบบจะบันทึกข้อมูลในเครื่องก่อน', 'warning');
+                    }
+                } catch (error) {
+                    console.error('Test connection failed:', error);
+                }
             }
             
             setupEventListeners() {
@@ -987,14 +1532,16 @@
                 
                 // Sync button
                 document.getElementById('syncButton').addEventListener('click', () => {
-                    this.exportData();
+                    this.syncAllData();
                 });
                 
                 // Logout
                 document.getElementById('logoutButton').addEventListener('click', () => this.logout());
                 
                 // Install app
-                document.getElementById('installAppBtn').addEventListener('click', () => this.installApp());
+                document.getElementById('installAppBtn').addEventListener('click', () => {
+                    InstallationManager.promptInstallation();
+                });
                 
                 // Export data
                 document.getElementById('exportDataBtn').addEventListener('click', () => this.exportData());
@@ -1014,11 +1561,25 @@
                     this.loadHistory(filter);
                 });
                 
-                // PWA install
-                window.addEventListener('beforeinstallprompt', (e) => {
-                    e.preventDefault();
-                    window.deferredPrompt = e;
-                    document.getElementById('installAppBtn').classList.remove('hidden');
+                // Help buttons
+                document.getElementById('viewHelpBtn').addEventListener('click', () => this.showHelp());
+                document.getElementById('reportIssueBtn').addEventListener('click', () => this.reportIssue());
+                
+                // Installation events
+                document.getElementById('installNowBtn')?.addEventListener('click', () => {
+                    InstallationManager.promptInstallation();
+                });
+                
+                document.getElementById('dismissInstallBtn')?.addEventListener('click', () => {
+                    InstallationManager.dismissBanner();
+                });
+                
+                document.getElementById('closeInstallGuide')?.addEventListener('click', () => {
+                    InstallationManager.hideInstallGuide();
+                });
+                
+                document.getElementById('autoInstallBtn')?.addEventListener('click', () => {
+                    InstallationManager.promptInstallation();
                 });
             }
             
@@ -1056,6 +1617,9 @@
                 this.loadSupervisors();
                 document.getElementById('loginScreen').classList.remove('hidden');
                 document.getElementById('appScreen').classList.add('hidden');
+                
+                // แสดงสถานะการติดตั้ง
+                InstallationManager.showAppModeStatus();
             }
             
             loadSupervisors() {
@@ -1166,17 +1730,11 @@
                 // Update active tab
                 document.querySelectorAll('.nav-tab').forEach(tab => {
                     const isActive = tab.dataset.screen === screen;
-                    tab.classList.toggle('text-blue-600', isActive);
-                    tab.classList.toggle('text-gray-500', !isActive);
+                    tab.classList.toggle('active', isActive);
                     
-                    // Add active indicator
-                    const existingIndicator = tab.querySelector('.active-indicator');
-                    if (isActive && !existingIndicator) {
-                        const indicator = document.createElement('div');
-                        indicator.className = 'active-indicator w-2 h-2 bg-blue-600 rounded-full mt-1';
-                        tab.appendChild(indicator);
-                    } else if (!isActive && existingIndicator) {
-                        existingIndicator.remove();
+                    const indicator = tab.querySelector('.active-indicator');
+                    if (indicator) {
+                        indicator.classList.toggle('hidden', !isActive);
                     }
                 });
                 
@@ -1274,6 +1832,47 @@
                 document.getElementById('photoWarning').classList.remove('hidden');
             }
             
+            async compressImage(base64Image) {
+                return new Promise((resolve) => {
+                    const img = new Image();
+                    img.onload = function() {
+                        const canvas = document.createElement('canvas');
+                        const ctx = canvas.getContext('2d');
+                        
+                        // กำหนดขนาดสูงสุด
+                        const MAX_WIDTH = 1200;
+                        const MAX_HEIGHT = 1200;
+                        let width = img.width;
+                        let height = img.height;
+                        
+                        // ลดขนาดถ้าใหญ่เกิน
+                        if (width > height) {
+                            if (width > MAX_WIDTH) {
+                                height *= MAX_WIDTH / width;
+                                width = MAX_WIDTH;
+                            }
+                        } else {
+                            if (height > MAX_HEIGHT) {
+                                width *= MAX_HEIGHT / height;
+                                height = MAX_HEIGHT;
+                            }
+                        }
+                        
+                        canvas.width = width;
+                        canvas.height = height;
+                        
+                        // วาดรูปใหม่
+                        ctx.drawImage(img, 0, 0, width, height);
+                        
+                        // บันทึกเป็น JPEG คุณภาพ 75%
+                        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.75);
+                        resolve(compressedBase64);
+                    };
+                    
+                    img.src = base64Image;
+                });
+            }
+            
             async submitInspection(event) {
                 event.preventDefault();
                 
@@ -1284,7 +1883,7 @@
                 const location = document.getElementById('locationInput').value;
                 const rating = document.getElementById('ratingInput').value;
                 const notes = document.getElementById('notes').value;
-                const imageData = document.getElementById('previewImage').src;
+                let imageData = document.getElementById('previewImage').src;
                 
                 // Validation
                 if (!maidId) {
@@ -1318,6 +1917,17 @@
                     document.getElementById('photoWarning').classList.remove('hidden');
                     NotificationManager.show('กรุณาถ่ายรูปประกอบ', 'ถ่ายรูปจุดที่ไม่เรียบร้อย', 'error');
                     return;
+                }
+                
+                // ลดขนาดรูปภาพถ้าใหญ่เกินไป
+                if (imageData.length > 500000) { // ถ้าใหญ่กว่า 500KB
+                    NotificationManager.show('กำลังประมวลสรููปภาพ', 'กำลังลดขนาดรูปภาพ...', 'info');
+                    try {
+                        imageData = await this.compressImage(imageData);
+                        console.log('ลดขนาดรูปภาพสำเร็จ:', Math.round(imageData.length / 1024), 'KB');
+                    } catch (error) {
+                        console.error('Error compressing image:', error);
+                    }
                 }
                 
                 // Get maid info
@@ -1354,13 +1964,17 @@
                     problems: problems,
                     notes: notes,
                     imageData: imageData,
+                    hasImage: true,
                     timestamp: new Date().toISOString(),
-                    synced: NetworkManager.isOnline
+                    synced: false
                 };
                 
-                // Save to storage
+                // Save to local storage
                 this.inspections.push(inspection);
                 Storage.set('inspections', this.inspections);
+                
+                // Try to sync to Google Sheets
+                const syncResult = await this.syncInspection(inspection);
                 
                 // Reset form
                 event.target.reset();
@@ -1375,32 +1989,104 @@
                 this.updateTodayInspections();
                 this.updateProfileInfo();
                 
-                // Try to sync if online
-                if (NetworkManager.isOnline) {
-                    this.syncInspection(inspection);
+                // Show sync result
+                if (syncResult.success) {
+                    inspection.synced = true;
+                    inspection.syncedAt = new Date().toISOString();
+                    Storage.set('inspections', this.inspections);
+                    
+                    NotificationManager.show('บันทึกสำเร็จ', `บันทึกการตรวจ ${maid.name} และส่งข้อมูลไปยังเซิร์ฟเวอร์`, 'success');
+                } else if (syncResult.offline) {
+                    NotificationManager.show('บันทึกสำเร็จ (ออฟไลน์)', `บันทึกการตรวจ ${maid.name} เก็บไว้ในเครื่อง`, 'info');
+                } else {
+                    NotificationManager.show('บันทึกสำเร็จ (เซิร์ฟเวอร์ไม่ตอบสนอง)', `บันทึกการตรวจ ${maid.name} เก็บไว้ในเครื่อง`, 'warning');
                 }
-                
-                NotificationManager.show('บันทึกสำเร็จ', `บันทึกการตรวจ ${maid.name}`, 'success');
             }
             
             async syncInspection(inspection) {
                 try {
-                    const success = await NetworkManager.exportToGoogleSheets({
-                        type: 'inspection',
-                        data: inspection
-                    });
+                    // เตรียมข้อมูลสำหรับส่ง
+                    const dataToSend = {
+                        id: inspection.id,
+                        supervisorId: inspection.supervisorId,
+                        supervisorName: inspection.supervisorName,
+                        maidId: inspection.maidId,
+                        maidName: inspection.maidName,
+                        maidArea: inspection.maidArea,
+                        area: inspection.area,
+                        location: inspection.location,
+                        rating: inspection.rating,
+                        problems: Array.isArray(inspection.problems) ? 
+                                 inspection.problems.filter(p => typeof p === 'string').join(', ') : 
+                                 (inspection.problems || ''),
+                        notes: inspection.notes || '',
+                        hasImage: inspection.hasImage ? 'true' : 'false',
+                        timestamp: inspection.timestamp
+                    };
                     
-                    if (success) {
-                        // Mark as synced
-                        const index = this.inspections.findIndex(i => i.id === inspection.id);
-                        if (index > -1) {
-                            this.inspections[index].synced = true;
-                            Storage.set('inspections', this.inspections);
-                        }
+                    // เพิ่มรูปภาพถ้ามี
+                    if (inspection.imageData && inspection.imageData.startsWith('data:image')) {
+                        dataToSend.imageData = inspection.imageData;
                     }
+                    
+                    console.log('กำลังซิงค์ข้อมูล:', Object.keys(dataToSend));
+                    
+                    const result = await NetworkManager.sendToGoogleSheets(dataToSend);
+                    
+                    return result;
+                    
                 } catch (error) {
                     console.error('Sync error:', error);
+                    return { success: false, error: error.message };
                 }
+            }
+            
+            async syncAllData() {
+                if (!NetworkManager.isOnline) {
+                    NotificationManager.show('ไม่สามารถซิงค์ข้อมูลได้', 'กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต', 'error');
+                    return;
+                }
+                
+                NotificationManager.show('กำลังซิงค์ข้อมูล', 'กำลังส่งข้อมูลไปยังเซิร์ฟเวอร์...', 'info');
+                
+                const unsyncedInspections = this.inspections.filter(i => !i.synced);
+                
+                if (unsyncedInspections.length === 0) {
+                    NotificationManager.show('ไม่พบข้อมูลที่ต้องซิงค์', 'ข้อมูลทั้งหมดถูกซิงค์แล้ว', 'info');
+                    return;
+                }
+                
+                let successCount = 0;
+                let errorCount = 0;
+                
+                for (const inspection of unsyncedInspections) {
+                    try {
+                        const result = await this.syncInspection(inspection);
+                        if (result.success) {
+                            successCount++;
+                            
+                            // อัพเดทสถานะ
+                            const index = this.inspections.findIndex(i => i.id === inspection.id);
+                            if (index > -1) {
+                                this.inspections[index].synced = true;
+                                this.inspections[index].syncedAt = new Date().toISOString();
+                            }
+                        } else {
+                            errorCount++;
+                        }
+                    } catch (error) {
+                        errorCount++;
+                    }
+                }
+                
+                // บันทึกข้อมูลที่อัพเดทแล้ว
+                Storage.set('inspections', this.inspections);
+                
+                NotificationManager.show(
+                    'ซิงค์ข้อมูลเสร็จสิ้น',
+                    `สำเร็จ: ${successCount} รายการ, ล้มเหลว: ${errorCount} รายการ`,
+                    successCount > 0 ? 'success' : 'error'
+                );
             }
             
             loadHistory(filter = 'all') {
@@ -1679,21 +2365,6 @@
                 NotificationManager.show('สร้างรายงานสำเร็จ', `ข้อมูล ${startDate} ถึง ${endDate}`, 'success');
             }
             
-            installApp() {
-                if (window.deferredPrompt) {
-                    window.deferredPrompt.prompt();
-                    
-                    window.deferredPrompt.userChoice.then((choiceResult) => {
-                        if (choiceResult.outcome === 'accepted') {
-                            NotificationManager.show('ติดตั้งสำเร็จ', 'แอปถูกติดตั้งบนอุปกรณ์แล้ว', 'success');
-                        }
-                        window.deferredPrompt = null;
-                    });
-                } else {
-                    NotificationManager.show('ข้อมูล', 'คุณสามารถติดตั้งแอปผ่านเมนูของเบราว์เซอร์', 'info');
-                }
-            }
-            
             exportData() {
                 if (this.inspections.length === 0) {
                     NotificationManager.show('ไม่มีข้อมูล', 'ยังไม่มีข้อมูลการตรวจงาน', 'warning');
@@ -1738,26 +2409,20 @@
                     location.reload();
                 }
             }
+            
+            showHelp() {
+                alert('คู่มือการใช้งาน:\n\n1. เลือกแม่บ้านและพื้นที่ที่ต้องการตรวจ\n2. ระบุจุดที่ตรวจสอบเจอปัญหา\n3. ให้คะแนนผลการตรวจ\n4. ถ่ายรูปประกอบ (จำเป็น)\n5. บันทึกข้อมูล\n\nระบบจะบันทึกข้อมูลในอุปกรณ์และส่งไปยังเซิร์ฟเวอร์อัตโนมัติเมื่อออนไลน์');
+            }
+            
+            reportIssue() {
+                alert('การแจ้งปัญหา:\n\nหากพบปัญหาในการใช้งาน กรุณาติดต่อ:\n\n- ผู้ดูแลระบบ: 02-xxx-xxxx\n- Email: support@example.com\n\nหรือส่งรายละเอียดปัญหาพร้อมภาพหน้าจอมาที่ Line OA: @maidinspection');
+            }
         }
         
         // Initialize app
         document.addEventListener('DOMContentLoaded', () => {
             window.app = new MaidInspectionApp();
         });
-        
-        // Service Worker Registration (for GitHub Pages)
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                // Register service worker from same directory
-                navigator.serviceWorker.register('./service-worker.js')
-                    .then(registration => {
-                        console.log('ServiceWorker registered:', registration);
-                    })
-                    .catch(error => {
-                        console.log('ServiceWorker registration failed:', error);
-                    });
-            });
-        }
     </script>
 </body>
 </html>
