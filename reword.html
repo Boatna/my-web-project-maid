@@ -3007,10 +3007,7 @@
     function closeEvaluation() {
       document.getElementById('evaluation-modal').classList.add('hidden');
     }
-    
-    // =============================================
-    // ฟังก์ชันแสดง Toast
-    // =============================================
+
     function showToast(message, type = 'info') {
       const toast = document.getElementById('toast');
       toast.textContent = message;
@@ -3027,11 +3024,6 @@
         toast.classList.add('hidden');
       }, 3000);
     }
-    
-    // =============================================
-    // เริ่มต้นระบบ
-    // =============================================
-    // เมื่อหน้าเว็บโหลดเสร็จ
     document.addEventListener('DOMContentLoaded', function() {
       init();
     });
